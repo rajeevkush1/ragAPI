@@ -510,55 +510,90 @@ def list_collections():
 
 
 # ── PDF Ingestion ─────────────────────────────────────────────────────────────
-class ChunkInfo(BaseModel):
-    chunk_id: str
-    text:     str
-    h1:       str
-    h2:       str
-
-class IngestResponse(BaseModel):
+class FileIngestStats(BaseModel):
     filename:   str
     chunks:     int
     status:     str
     embed_secs: float
-    chunk_list: list[ChunkInfo] = []
+    error:      Optional[str] = None
 
-@app.post("/ingest", response_model=IngestResponse, tags=["Ingestion"])
+class BatchIngestResponse(BaseModel):
+    status:     str
+    results:    list[FileIngestStats]
+
+@app.post("/ingest", response_model=BatchIngestResponse, tags=["Ingestion"])
 async def ingest_endpoint(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
+    files: list[UploadFile] = File(...),
     embedding_model: str = "BAAI/bge-small-en-v1.5",
 ):
-    """Upload and ingest a PDF into Qdrant."""
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+    """Upload and ingest multiple PDFs into Qdrant in a single batch."""
+    from ingest import ingest_pdf, unload_embed_model
 
-    from ingest import ingest_pdf
+    results = []
+    for file in files:
+        if not file.filename or not file.filename.lower().endswith(".pdf"):
+            results.append(FileIngestStats(
+                filename=file.filename or "unknown",
+                chunks=0,
+                status="failed",
+                embed_secs=0.0,
+                error="Only PDF files are supported"
+            ))
+            continue
 
-    content = await file.read()
-    if len(content) > config.MAX_PDF_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Maximum allowed size is {config.MAX_PDF_MB} MB.",
-        )
+        try:
+            content = await file.read()
+            if len(content) > config.MAX_PDF_MB * 1024 * 1024:
+                results.append(FileIngestStats(
+                    filename=file.filename,
+                    chunks=0,
+                    status="failed",
+                    embed_secs=0.0,
+                    error=f"File exceeds max size of {config.MAX_PDF_MB} MB"
+                ))
+                continue
 
-    safe_name = Path(file.filename).name
-    pdf_path  = config.PDF_DIR / safe_name
-    pdf_path.write_bytes(content)
+            safe_name = Path(file.filename).name
+            pdf_path  = config.PDF_DIR / safe_name
+            pdf_path.write_bytes(content)
 
-    t0 = time.perf_counter()
+            t0 = time.perf_counter()
+            try:
+                stats = await asyncio.to_thread(ingest_pdf, pdf_path, parser="auto", embedding_model=embedding_model)
+                results.append(FileIngestStats(
+                    filename=file.filename,
+                    chunks=stats.get("chunks", 0),
+                    status="ingested",
+                    embed_secs=round(time.perf_counter() - t0, 2)
+                ))
+            except Exception as exc:
+                pdf_path.unlink(missing_ok=True)
+                results.append(FileIngestStats(
+                    filename=file.filename,
+                    chunks=0,
+                    status="failed",
+                    embed_secs=0.0,
+                    error=str(exc)
+                ))
+        except Exception as exc:
+            results.append(FileIngestStats(
+                filename=file.filename,
+                chunks=0,
+                status="failed",
+                embed_secs=0.0,
+                error=f"Upload read error: {exc}"
+            ))
+
+    # Free memory at the end of the batch
     try:
-        stats = await asyncio.to_thread(ingest_pdf, pdf_path, parser="auto", embedding_model=embedding_model)
-    except Exception as exc:
-        pdf_path.unlink(missing_ok=True)
-        raise HTTPException(status_code=500, detail=f"Ingestion failed: {exc}")
+        unload_embed_model()
+    except Exception:
+        pass
 
-    return IngestResponse(
-        filename=file.filename,
-        chunks=stats.get("chunks", 0),
-        status="ingested",
-        embed_secs=round(time.perf_counter() - t0, 2),
-        chunk_list=stats.get("chunk_list", []),
+    return BatchIngestResponse(
+        status="completed",
+        results=results
     )
 
 

@@ -85,9 +85,10 @@ def call_model(state: AgentState):
             content=(
                 "You are an expert AI research assistant specializing in machine learning and systems papers. "
                 "Use the `retrieve_research_papers` tool to fetch text context whenever asked about papers. "
-                "Synthesize your answer strictly based on the retrieved contexts. "
-                "Always cite sources and section titles (e.g. '[paper.pdf | h1 > h2]') if available in the text. "
-                "If the tool returns no relevant content, state that you do not have enough information."
+                "You have access to a database of multiple ingested research papers. Always synthesize your answers "
+                "by cross-referencing all relevant papers. Compare and contrast their insights, methodologies, "
+                "and conclusions. Always cite all referenced sources and section titles (e.g. '[paper.pdf | h1 > h2]') "
+                "if available in the text."
             )
         )
         messages = [system_msg] + messages

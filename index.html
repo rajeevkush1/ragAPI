@@ -207,6 +207,12 @@
       color: #f87171;
     }
 
+    .ingest-status.warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+    }
+
     .ingest-status.loading {
       background: rgba(99, 102, 241, 0.1);
       border: 1px solid rgba(99, 102, 241, 0.2);
@@ -1034,24 +1040,29 @@
         }
       };
 
-      // Handle PDF upload
+      // Handle multiple PDFs upload
       const handleFileUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        if (!file.name.toLowerCase().endsWith(".pdf")) {
-          setIngestStatus({ type: "error", message: "Only PDF files supported." });
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+        
+        const invalidFiles = files.filter(f => !f.name.toLowerCase().endsWith(".pdf"));
+        if (invalidFiles.length > 0) {
+          setIngestStatus({ type: "error", message: "Only PDF files are supported." });
           return;
         }
 
         const formData = new FormData();
-        formData.append("file", file);
+        files.forEach(file => {
+          formData.append("files", file);
+        });
 
         setUploading(true);
-        setIngestStatus({ type: "loading", message: `Parsing & embedding ${file.name}…` });
+        const fileNamesStr = files.map(f => f.name).join(", ");
+        setIngestStatus({ type: "loading", message: `Parsing & embedding ${files.length} paper(s): ${fileNamesStr}…` });
 
-        // Abort after 5 minutes — large PDFs need time to embed
+        // Increase abort timeout for multiple files (10 minutes)
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+        const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000);
 
         try {
           const res = await fetch(`/ingest?embedding_model=${encodeURIComponent(embedModel)}`, {
@@ -1061,7 +1072,6 @@
           });
           clearTimeout(timeoutId);
 
-          // Safely parse response — server may return JSON or plain text
           let data = {};
           const contentType = res.headers.get("content-type") || "";
           if (contentType.includes("application/json")) {
@@ -1072,13 +1082,27 @@
           }
 
           if (res.ok) {
+            const results = data.results || [];
+            const successList = results.filter(r => r.status === "ingested");
+            const failList = results.filter(r => r.status === "failed");
+            
+            let msg = `✓ Ingested ${successList.length} of ${files.length} papers.`;
+            if (successList.length > 0) {
+              const summary = successList.map(r => `${r.filename} (${r.chunks} chunks)`).join(", ");
+              msg += ` Details: ${summary}`;
+            }
+            if (failList.length > 0) {
+              const errors = failList.map(r => `${r.filename}: ${r.error}`).join("; ");
+              msg += ` Failed: ${errors}`;
+            }
+
             setIngestStatus({
-              type: "success",
-              message: `✓ Ingested ${file.name} — ${data.chunks} chunks created.`
+              type: failList.length === files.length ? "error" : failList.length > 0 ? "warning" : "success",
+              message: msg
             });
             fetchDocuments();
           } else if (res.status === 413) {
-            setIngestStatus({ type: "error", message: "File too large. Maximum upload size is 50 MB." });
+            setIngestStatus({ type: "error", message: "One or more files are too large (max 50 MB)." });
           } else {
             const detail = data.detail || `Server error ${res.status}`;
             setIngestStatus({ type: "error", message: `Ingestion failed: ${detail}` });
@@ -1086,12 +1110,11 @@
         } catch (err) {
           clearTimeout(timeoutId);
           if (err.name === "AbortError") {
-            setIngestStatus({ type: "error", message: "Upload timed out after 5 minutes. Try a smaller file." });
+            setIngestStatus({ type: "error", message: "Upload timed out after 10 minutes." });
           } else {
-            // fetch() itself threw — server unreachable or CORS issue
             setIngestStatus({
               type: "error",
-              message: `Cannot reach server: ${err.message}. Is the backend running on port 8000?`
+              message: `Cannot reach server: ${err.message}`
             });
           }
         } finally {
@@ -1345,12 +1368,13 @@
                 accept=".pdf" 
                 onChange={handleFileUpload} 
                 disabled={uploading}
+                multiple
               />
               <div className="upload-icon">
                 <i className="fa-solid fa-cloud-arrow-up"></i>
               </div>
-              <div className="upload-text">Upload PDF</div>
-              <div className="upload-subtext">Click to browse your documents</div>
+              <div className="upload-text">Upload PDF Paper(s)</div>
+              <div className="upload-subtext">Select multiple papers at once</div>
             </div>
 
             {ingestStatus && (
