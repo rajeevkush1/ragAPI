@@ -88,31 +88,32 @@ def _retry(fn, *, retries: int = 3, base_delay: float = 1.0, label: str = ""):
             time.sleep(delay)
 
 _EMBED_MODEL: TextEmbedding | None = None
+_CURRENT_MODEL_NAME: str | None = None
 
-def get_embed_model() -> TextEmbedding:
-    global _EMBED_MODEL
-    if _EMBED_MODEL is None:
-        console.log(f"[cyan]Loading embedding model[/cyan] [bold]{config.EMBED_MODEL}[/bold]…")
-        _EMBED_MODEL = TextEmbedding(model_name=config.EMBED_MODEL)
+def get_embed_model(model_name: str | None = None) -> TextEmbedding:
+    global _EMBED_MODEL, _CURRENT_MODEL_NAME
+    target_model = model_name or config.EMBED_MODEL
+    
+    # Map BAAI/bge-tiny-en-v1.5 to sentence-transformers/all-MiniLM-L6-v2
+    if "tiny" in target_model.lower():
+        target_model = "sentence-transformers/all-MiniLM-L6-v2"
+        
+    if _EMBED_MODEL is None or _CURRENT_MODEL_NAME != target_model:
+        if _EMBED_MODEL is not None:
+            unload_embed_model()
+        console.log(f"[cyan]Loading embedding model[/cyan] [bold]{target_model}[/bold]…")
+        _EMBED_MODEL = TextEmbedding(model_name=target_model)
+        _CURRENT_MODEL_NAME = target_model
     return _EMBED_MODEL
 
 
 def unload_embed_model() -> None:
     """Unloads the embedding model from memory and runs garbage collection."""
-    global _EMBED_MODEL
+    global _EMBED_MODEL, _CURRENT_MODEL_NAME
     if _EMBED_MODEL is not None:
         del _EMBED_MODEL
         _EMBED_MODEL = None
-        import gc
-        gc.collect()
-
-
-def unload_embed_model() -> None:
-    """Unloads the embedding model from memory and runs garbage collection."""
-    global _EMBED_MODEL
-    if _EMBED_MODEL is not None:
-        del _EMBED_MODEL
-        _EMBED_MODEL = None
+        _CURRENT_MODEL_NAME = None
         import gc
         gc.collect()
 
@@ -228,9 +229,9 @@ def split_markdown(text: str, source_metadata: dict) -> list[dict]:
 
 
 # ── Step 3: Embed chunks with BGE-M3 ─────────────────────────────────────────
-def embed_chunks(chunks: list[dict]) -> list[dict]:
-    """Add a 'vector' key to each chunk dict using BGE-M3."""
-    model   = get_embed_model()
+def embed_chunks(chunks: list[dict], model_name: str | None = None) -> list[dict]:
+    """Add a 'vector' key to each chunk dict."""
+    model   = get_embed_model(model_name)
     texts   = [c["text"] for c in chunks]
     vectors = list(
         model.embed(
@@ -257,16 +258,24 @@ def get_qdrant_client() -> QdrantClient:
     return _retry(_connect, retries=3, base_delay=2.0, label="Qdrant connection")
 
 
-def ensure_collection(client: QdrantClient) -> None:
+def ensure_collection(client: QdrantClient, embedding_model: str | None = None) -> None:
     """Create collection if it does not already exist (retries on transient errors)."""
     def _ensure():
         existing = {c.name for c in client.get_collections().collections}
         if config.COLLECTION_NAME not in existing:
             console.log(f"[cyan]Creating collection[/cyan] [bold]{config.COLLECTION_NAME}[/bold]…")
+            
+            model_name = embedding_model or config.EMBED_MODEL
+            size = 384
+            if "base" in model_name.lower():
+                size = 768
+            elif "large" in model_name.lower() or "m3" in model_name.lower():
+                size = 1024
+                
             client.create_collection(
                 collection_name=config.COLLECTION_NAME,
                 vectors_config=VectorParams(
-                    size=config.EMBED_DIM,
+                    size=size,
                     distance=Distance.COSINE,
                 ),
             )
@@ -311,6 +320,7 @@ def upsert_chunks(client: QdrantClient, chunks: list[dict]) -> None:
 def ingest_pdf(
     pdf_path: Path,
     parser: Literal["auto", "pymupdf", "marker"] = "auto",
+    embedding_model: str | None = None,
 ) -> dict:
     """Full pipeline for a single PDF. Returns stats dict."""
     pdf_path = pdf_path.resolve()
@@ -330,14 +340,11 @@ def ingest_pdf(
     console.log(f"[green]✓[/green] {len(chunks)} chunks produced")
 
     # 3. Embed
-    console.log("[cyan]Embedding with BGE-M3…[/cyan]")
+    console.log(f"[cyan]Embedding with {embedding_model or config.EMBED_MODEL}…[/cyan]")
     t0     = time.perf_counter()
-    chunks = embed_chunks(chunks)
+    chunks = embed_chunks(chunks, model_name=embedding_model)
     elapsed = time.perf_counter() - t0
     console.log(f"[green]✓ Embedded[/green] in {elapsed:.1f}s")
-    
-    # Free embedding model memory immediately
-    unload_embed_model()
     
     # Free embedding model memory immediately
     unload_embed_model()
@@ -345,7 +352,7 @@ def ingest_pdf(
     # 4. Upsert
     try:
         client = get_qdrant_client()
-        ensure_collection(client)
+        ensure_collection(client, embedding_model=embedding_model)
         console.log(f"[cyan]Upserting {len(chunks)} vectors to Qdrant…[/cyan]")
         upsert_chunks(client, chunks)
         console.log(f"[green]✓ Upserted successfully[/green]")

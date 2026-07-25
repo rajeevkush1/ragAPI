@@ -1,82 +1,95 @@
-# Advanced RAG Pipeline
+# Advanced Agentic RAG Pipeline
 
-**LangGraph + Qdrant + BGE-M3 + Ollama + Nougat**  
-A production-ready RAG stack for AI research papers — preserves math, tables, and structure.
+**LangGraph ReAct Loop + Qdrant + local FastEmbed + FastAPI UI + Multi-LLM Provider (Groq / Gemini / Ollama)**
+
+A production-ready Agentic RAG stack for AI research papers — featuring dynamic local embedding model selection, hybrid dense-sparse retrieval (BM25 + Dense + RRF), dynamic LLM provider fallbacks, and a premium React chat interface.
 
 ---
 
-## Architecture
+## Architecture Diagram
 
 ```
-PDF
- │
- ▼ Nougat OCR
-Structured Markdown (.mmd)   ← preserves LaTeX equations, tables
- │
- ▼ MarkdownHeaderTextSplitter (Pass 1 — semantic boundaries)
- ▼ RecursiveCharacterTextSplitter (Pass 2 — size cap)
-Chunks (≤1000 tokens, 200 overlap)
- │
- ▼ BGE-M3 (FastEmbed, 1024-dim, multilingual)
-Dense Vectors
- │
- ▼ Qdrant (Docker, local)
-Vector Store
+PDF INGESTION FLOW:
+┌───────────┐      ┌─────────────┐      ┌─────────────────┐      ┌─────────────────────┐      ┌────────────┐
+│ PDF Paper │ ───► │ pymupdf4llm │ ───► │ Markdown Header │ ───► │   Local FastEmbed   │ ───► │   Qdrant   │
+└───────────┘      └─────────────┘      │  & Char Splitter│      │ (BGE-Small/MiniLM)  │      │ Vector DB  │
+                                        └─────────────────┘      └─────────────────────┘      └────────────┘
 
-QUERY
- │
- ▼ BGE-M3 embed question
- ▼ Qdrant cosine search (TOP_K=6)
- ▼ LLM relevance grading (Ollama)
- ▼ Ollama generate answer
-ANSWER + sources
+QUERY AGENT LOOP (LangGraph ReAct):
+                    ┌──────────────────────────────┐
+                    │      Query / User Prompt     │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+         ┌──────────────────────────────────────────────────┐
+         │      ReAct Agent LLM Router Decision Loop        │
+         │   (Precedence: Groq ──► Gemini ──► Ollama)       │
+         └───────────┬──────────────────────────▲───────────┘
+                     │                          │
+           Needs Context?                  Yield Answer
+                     │                          │
+                     ▼                          │
+        ┌─────────────────────────┐             │
+        │ retrieve_research_papers│             │
+        │         (Tool)          │             │
+        └────────────┬────────────┘             │
+                     │                          │
+        ┌────────────▼────────────┐             │
+        │  Local Hybrid Retrieve: │             │
+        │  1. FastEmbed (Dense)   │             │
+        │  2. BM25 (Sparse)       │             │
+        │  3. RRF (Merge Rank)    │             │
+        └────────────┬────────────┘             │
+                     │                          │
+                     └──────────────────────────┘
 ```
+
+---
+
+## Key Features
+
+1. **Dynamic Embedding Selection:** Toggle between `BAAI/bge-small-en-v1.5` (More Accurate) and `BAAI/bge-tiny-en-v1.5` (Faster, mapped to `sentence-transformers/all-MiniLM-L6-v2`) directly in the UI. Both map to a 384-dimensional vector space, preventing database conflicts.
+2. **On-Device Embeddings:** Generating vectors locally via ONNX-backed FastEmbed — completely eliminating third-party embedding API costs and keys (`HF_TOKEN` is discarded).
+3. **Adaptive LLM Routing:** Dynamic startup selection checks your API keys:
+   * **Groq** (`llama-3.3-70b-versatile`) $\rightarrow$ Primary choice (insanely fast, highly accurate).
+   * **Gemini** (`gemini-1.5-flash`) $\rightarrow$ Secondary choice (large context, free tier).
+   * **Ollama** (`llama3.2:3b` / user preference) $\rightarrow$ Tertiary local fallback if offline or no keys provided.
+4. **Hybrid Retrieval (RRF):** Merges semantic dense matches from Qdrant with lexical sparse matches from Rank-BM25 using Reciprocal Rank Fusion (RRF) for optimal context quality.
+5. **SSE Streaming UI:** Real-time token streaming and step-by-step pipeline node tracking delivered directly to the custom React-based frontend.
 
 ---
 
 ## Quick Start
 
-### 1. Start Qdrant
+### 1. Start Qdrant Vector DB
+Ensure you have Docker running, then start the Qdrant instance:
 ```bash
 docker compose up -d
 ```
 
-### 2. Install dependencies
+### 2. Configure Environment Keys
+Copy `.env.example` to `.env` and configure your API keys:
+```env
+GROQ_API_KEY=your_real_groq_key_here
+GEMINI_API_KEY=your_real_gemini_key_here
+```
+*(If no keys are configured, it will attempt to connect to your local Ollama server).*
+
+### 3. Install Dependencies
+Initialize your virtual environment and install package dependencies:
 ```bash
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3. Pull your Ollama model
+### 4. Start the Agentic API Server
+Start the FastAPI server on port `8001`:
 ```bash
-ollama pull llama3.2:3b
+.venv\Scripts\python agentic_api.py
 ```
 
-### 4. Ingest PDFs
-```bash
-# Single PDF
-python ingest.py paper.pdf
-
-# Entire folder
-python ingest.py ./pdfs/
-```
-
-### 5. Start the API
-```bash
-uvicorn api:app --reload --host 0.0.0.0 --port 8000
-```
-Then visit **http://localhost:8000/docs** for the Swagger UI.
-
-### 6. Query via CLI
-```bash
-python rag_chain.py "What is the key insight of Flash Attention?"
-```
-
-### 7. Query via API
-```bash
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is Flash Attention?"}'
-```
+### 5. Access the Chat Interface
+Open your web browser and navigate to **[http://127.0.0.1:8001/](http://127.0.0.1:8001/)** to select your embedding model, upload PDFs, and ask questions!
 
 ---
 
@@ -84,40 +97,12 @@ curl -X POST http://localhost:8000/query \
 
 | File | Purpose |
 |------|---------|
-| `config.py` | Central config — all tuneable via env vars |
-| `ingest.py` | PDF → Nougat → split → embed → Qdrant |
-| `rag_chain.py` | LangGraph graph: retrieve → grade → generate |
-| `api.py` | FastAPI REST server |
-| `docker-compose.yml` | Qdrant with persistent volume |
-| `.env.example` | Environment template |
-| `pdfs/` | Drop your PDFs here |
-| `parsed/` | Nougat .mmd output cache |
-
----
-
-## Configuration
-
-All settings in `.env` (copy from `.env.example`):
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OLLAMA_MODEL` | `llama3.2:3b` | Any model from `ollama list` |
-| `EMBED_MODEL` | `BAAI/bge-m3` | FastEmbed model name |
-| `CHUNK_SIZE` | `1000` | Max chars per chunk |
-| `CHUNK_OVERLAP` | `200` | Overlap between chunks |
-| `TOP_K` | `6` | Retrieved chunks per query |
-| `SCORE_THRESH` | `0.30` | Min cosine similarity |
-| `QDRANT_COLLECTION` | `ai_research` | Collection name |
-
----
-
-## Why This Stack?
-
-| Component | Why |
-|-----------|-----|
-| **Nougat** | Academic PDF parsing — preserves math (LaTeX), tables, figures |
-| **MarkdownHeaderTextSplitter** | Respects section boundaries before size-splitting |
-| **BGE-M3** | Multilingual, 1024-dim, SOTA on academic retrieval benchmarks |
-| **Qdrant** | Fast HNSW cosine search, rich metadata filtering |
-| **LangGraph** | Explicit graph control flow — easy to add re-ranking, routing |
-| **Ollama** | Local LLM — no API costs, full privacy |
+| `agentic_api.py` | FastAPI server serving endpoints (Query, Ingest, Documents) and the React UI. |
+| `agentic_graph.py` | LangGraph ReAct agent loop definition and LLM resolver. |
+| `agentic_state.py` | Agent message list state utilizing Pydantic. |
+| `agentic_tools.py` | Retrieval tool conducting local FastEmbed + Qdrant + BM25 + RRF query search. |
+| `ingest.py` | PDF ingestion pipeline (Parsing $\rightarrow$ Splitting $\rightarrow$ Local FastEmbed $\rightarrow$ Qdrant). |
+| `config.py` | Global settings, directories, and model dimensions. |
+| `index.html` | Frontend React UI supporting chat, document management, and model selection. |
+| `docker-compose.yml` | Sets up Qdrant container with persistent volume mapping. |
+| `.env` | Holds active API keys and custom configuration overrides. |

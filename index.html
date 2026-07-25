@@ -945,6 +945,7 @@
       const [selectedDoc, setSelectedDoc] = useState(null); // { filename: '', chunks: [] }
       const [viewingChunks, setViewingChunks] = useState(false);
       const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+      const [embedModel, setEmbedModel] = useState("BAAI/bge-small-en-v1.5");
 
       const messagesEndRef = useRef(null);
       const fileInputRef = useRef(null);
@@ -1053,7 +1054,7 @@
         const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
 
         try {
-          const res = await fetch("/ingest", {
+          const res = await fetch(`/ingest?embedding_model=${encodeURIComponent(embedModel)}`, {
             method: "POST",
             body: formData,
             signal: controller.signal,
@@ -1120,7 +1121,7 @@
         setActiveNode("query_analyzer");
         setNodeStages(["query_analyzer"]);
 
-        const eventSourceUrl = `/query?question=${encodeURIComponent(userText)}&thread_id=${threadId}&stream=true`;
+        const eventSourceUrl = `/query?question=${encodeURIComponent(userText)}&thread_id=${threadId}&stream=true&embedding_model=${encodeURIComponent(embedModel)}`;
         const es = new EventSource(eventSourceUrl);
 
         es.onmessage = (event) => {
@@ -1309,6 +1310,27 @@
                 <i className="fa-solid fa-xmark"></i>
               </button>
             </div>
+
+            <div className="section-title">Embedding Model</div>
+            <select 
+              value={embedModel} 
+              onChange={(e) => setEmbedModel(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                background: 'rgba(30, 41, 59, 0.8)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-main)',
+                fontSize: '13px',
+                marginBottom: '16px',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="BAAI/bge-small-en-v1.5">BAAI/bge-small-en-v1.5 (More Accurate)</option>
+              <option value="BAAI/bge-tiny-en-v1.5">BAAI/bge-tiny-en-v1.5 (Faster)</option>
+            </select>
 
             <div className="section-title">Ingest Research Papers</div>
             
@@ -1620,30 +1642,30 @@
 
             {/* AI Diagnostics & Metadata */}
             {isAi && metadata && (
-              <div className="diagnostics-banner">
-                <div className="diag-item">
-                  <span className={`badge ${grounded ? 'grounded' : 'not-grounded'}`}>
-                    {grounded ? 'Grounded' : 'Not Grounded'}
-                  </span>
-                </div>
-                <div className="diag-item">
-                  <i className="fa-solid fa-shield-halved"></i>
-                  <span>Confidence: {confidence ? (confidence * 100).toFixed(0) : 0}%</span>
-                </div>
-                <div className="diag-item">
-                  <i className="fa-solid fa-magnifying-glass"></i>
-                  <span>Query: {metadata.query_type}</span>
-                </div>
-                {metadata.retrieval_retries > 0 && (
-                  <div className="diag-item" style={{ color: "var(--warning-color)" }}>
-                    <i className="fa-solid fa-arrows-spin"></i>
-                    <span>Retrieved: {metadata.retrieval_retries}x</span>
+              <div className="diagnostics-banner" style={{ flexWrap: 'wrap', gap: '8px' }}>
+                {grounded !== undefined && (
+                  <div className="diag-item">
+                    <span className={`badge ${grounded ? 'grounded' : 'not-grounded'}`} title={metadata.judge_reason || ''}>
+                      {grounded ? 'Grounded' : 'Not Grounded'}
+                    </span>
                   </div>
                 )}
-                {metadata.generation_retries > 0 && (
-                  <div className="diag-item" style={{ color: "var(--warning-color)" }}>
-                    <i className="fa-solid fa-arrows-spin"></i>
-                    <span>Generated: {metadata.generation_retries}x</span>
+                {confidence !== undefined && (
+                  <div className="diag-item" title={metadata.judge_reason || ''}>
+                    <i className="fa-solid fa-shield-halved"></i>
+                    <span>Confidence: {(confidence * 100).toFixed(0)}%</span>
+                  </div>
+                )}
+                {metadata.query_type && (
+                  <div className="diag-item">
+                    <i className="fa-solid fa-magnifying-glass"></i>
+                    <span>Query: {metadata.query_type}</span>
+                  </div>
+                )}
+                {metadata.judge_reason && (
+                  <div className="diag-item" style={{ fontStyle: 'italic', opacity: 0.8 }} title="Gemini Judge Critic Evaluation">
+                    <i className="fa-solid fa-scale-balanced" style={{ color: 'var(--accent-color)', marginRight: '4px' }}></i>
+                    <span>Critic: {metadata.judge_reason}</span>
                   </div>
                 )}
               </div>

@@ -36,3 +36,9 @@ wheel>=0.47.0
 # Uncomment below if you have Visual C++ Build Tools installed:
 # marker-pdf>=0.2.0
 # Alternatively install nougat-ocr with Python 3.11/3.12 in a venv
+
+# ── Cloud Model APIs & Hugging Face ───────────────────────────────────────────
+langchain-groq>=0.2.0
+langchain-google-genai>=0.2.0
+langchain-huggingface>=0.1.0
+
