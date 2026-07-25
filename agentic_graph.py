@@ -177,15 +177,29 @@ def judge_node(state: AgentState):
             "grounded": res_json.get("grounded", True),
             "confidence": res_json.get("confidence", 0.95),
             "query_type": "vector",
-            "judge_reason": res_json.get("reason", "Evaluation complete.")
+            "judge_reason": f"[Gemini Judge] {res_json.get('reason', 'Evaluation complete.')}"
         }
-    except Exception as exc:
-        diagnostics = {
-            "grounded": True,
-            "confidence": 0.85,
-            "query_type": "vector",
-            "judge_reason": f"Gemini critic error: {exc}"
-        }
+    except Exception as gemini_exc:
+        # Self-healing fallback: If Gemini fails (404/429), dynamically evaluate using Groq instead!
+        try:
+            fallback_llm = get_llm()
+            response = fallback_llm.invoke([HumanMessage(content=prompt)])
+            cleaned_content = response.content.strip().replace("```json", "").replace("```", "").strip()
+            res_json = json.loads(cleaned_content)
+            
+            diagnostics = {
+                "grounded": res_json.get("grounded", True),
+                "confidence": res_json.get("confidence", 0.95),
+                "query_type": "vector",
+                "judge_reason": f"[Groq Judge (Gemini Fallback)] {res_json.get('reason', 'Evaluation complete.')}"
+            }
+        except Exception as groq_exc:
+            diagnostics = {
+                "grounded": True,
+                "confidence": 0.85,
+                "query_type": "vector",
+                "judge_reason": f"Evaluators failed (Gemini: {gemini_exc} | Groq: {groq_exc})"
+            }
         
     updated_msg = AIMessage(
         id=target_msg.id,
