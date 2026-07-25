@@ -1,0 +1,32 @@
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+my-project/rag_eval/.venv/
+
+# Pycache and build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+
+# Local data directories (mount these via docker-compose instead of baking)
+pdfs/
+parsed/
+empty.pdf
+
+# Local configurations & secrets
+.env
+.git/
+.github/
+.planning/
+
+# OS specific files
+.DS_Store
+Thumbs.db

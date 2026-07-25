@@ -1,0 +1,38 @@
+# ── Core RAG ──────────────────────────────────────────────────────────────────
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-ollama>=0.2.0
+langgraph>=0.2.0
+
+# ── Vector Store ──────────────────────────────────────────────────────────────
+qdrant-client>=1.11.0
+
+# ── Embeddings (BGE-M3 via FastEmbed, ONNX-based, Python 3.14 compatible) ───
+fastembed>=0.4.0
+
+# ── BM25 sparse retrieval ─────────────────────────────────────────────────────
+rank-bm25>=0.2.2
+
+# ── PDF Parsing (Python 3.14 compatible via Stable ABI wheels) ───────────────
+pymupdf4llm>=0.0.17
+
+# ── API ───────────────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
+
+# ── Ollama Python client ──────────────────────────────────────────────────────
+ollama>=0.3.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0
+pydantic>=2.9.0
+rich>=13.0.0
+typer>=0.12.0
+setuptools>=83.0.0
+wheel>=0.47.0
+
+# ── OPTIONAL: marker-pdf (high-quality PDF parser, requires C++ build tools) ─
+# Uncomment below if you have Visual C++ Build Tools installed:
+# marker-pdf>=0.2.0
+# Alternatively install nougat-ocr with Python 3.11/3.12 in a venv

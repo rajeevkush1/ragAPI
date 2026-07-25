@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResearchRAG | AI Research Paper Assistant</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for Premium Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- React & Babel from CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --bg-bubble-user: #4f46e5;
+      --bg-bubble-ai: #1f2937;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent-color: #6366f1;
+      --accent-hover: #4f46e5;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.06) 0px, transparent 50%);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Main Container */
+    #root {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: rgba(10, 15, 30, 0.6);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      overflow-y: auto;
+      backdrop-filter: blur(20px);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      background: linear-gradient(135deg, var(--accent-color), #8b5cf6);
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 20px;
+      background: linear-gradient(to right, #ffffff, #c7d2fe);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Upload Box */
+    .upload-area {
+      border: 2px dashed rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.02);
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .upload-area:hover {
+      border-color: var(--accent-color);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .upload-area.dragging {
+      border-color: var(--success-color);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .upload-icon {
+      font-size: 28px;
+      color: var(--accent-color);
+      margin-bottom: 12px;
+    }
+
+    .upload-text {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .upload-subtext {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    /* Ingestion Status Alert */
+    .ingest-status {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-top: -12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .ingest-status.success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #34d399;
+    }
+
+    .ingest-status.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    .ingest-status.loading {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+    }
+
+    /* Session List */
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .session-item {
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      font-size: 13px;
+    }
+
+    .session-item:hover, .session-item.active {
+      background: rgba(99, 102, 241, 0.1);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .session-name {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .session-actions {
+      display: flex;
+      gap: 8px;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+
+    .session-item:hover .session-actions {
+      opacity: 1;
+    }
+
+    .action-btn-sm {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      padding: 2px;
+    }
+
+    .action-btn-sm:hover {
+      color: var(--danger-color);
+    }
+
+    .btn-new-thread {
+      background: linear-gradient(to right, var(--accent-color), #4f46e5);
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-weight: 600;
+      font-size: 13px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+      margin-top: 12px;
+    }
+
+    .btn-new-thread:hover {
+      opacity: 0.95;
+    }
+
+    /* Main Chat Section */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-dark);
+      position: relative;
+    }
+
+    /* Top Bar */
+    .topbar {
+      height: 70px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      background: rgba(10, 15, 30, 0.4);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    .topbar-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .topbar-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .system-health {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .health-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success-color);
+      box-shadow: 0 0 8px var(--success-color);
+    }
+
+    /* Message Area */
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .message {
+      display: flex;
+      gap: 16px;
+      max-width: 85%;
+      animation: messageSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message.ai {
+      align-self: flex-start;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .message.user .avatar {
+      background: var(--bg-bubble-user);
+      color: white;
+    }
+
+    .message.ai .avatar {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+
+    .bubble {
+      padding: 16px 20px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-wrap: break-word;
+      position: relative;
+      white-space: pre-wrap;
+    }
+
+    .message.user .bubble {
+      background: var(--bg-bubble-user);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.ai .bubble {
+      background: var(--bg-bubble-ai);
+      color: var(--text-main);
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Streaming Cursor */
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 15px;
+      background: var(--accent-color);
+      margin-left: 2px;
+      animation: blink 0.8s infinite;
+      vertical-align: middle;
+    }
+
+    /* Diagnostics Banner inside Bubble */
+    .diagnostics-banner {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .diag-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 9px;
+    }
+
+    .badge.grounded {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+    }
+
+    .badge.not-grounded {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+
+    /* Citations Accordion */
+    .citations-section {
+      margin-top: 12px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      overflow: hidden;
+    }
+
+    .citations-header {
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      transition: background 0.2s;
+    }
+
+    .citations-header:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .citations-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      animation: slideDown 0.2s ease-out;
+    }
+
+    .source-card {
+      padding: 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      font-size: 11px;
+    }
+
+    .source-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .source-title {
+      color: var(--accent-color);
+      font-weight: 600;
+    }
+
+    .source-score {
+      color: var(--success-color);
+    }
+
+    .source-text {
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Active Pipeline Status Overlay */
+    .pipeline-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 12px 24px;
+      background: rgba(17, 24, 39, 0.4);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      width: fit-content;
+      margin: 0 auto 16px auto;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .spinner {
+      animation: spin 1s linear infinite;
+      color: var(--accent-color);
+    }
+
+    /* Input Bar */
+    .input-bar {
+      padding: 24px 32px;
+      background: linear-gradient(to top, var(--bg-dark), transparent);
+      z-index: 10;
+    }
+
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 8px 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(12px);
+      transition: border-color 0.2s;
+    }
+
+    .input-wrapper:focus-within {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 14px;
+      padding: 10px 0;
+      outline: none;
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .btn-send {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .btn-send:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Welcome view */
+    .welcome-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .welcome-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(to right, #ffffff, #c7d2fe);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .welcome-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 480px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .quick-start-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 600px;
+    }
+
+    .quick-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .quick-card:hover {
+      background: rgba(99, 102, 241, 0.05);
+      border-color: rgba(99, 102, 241, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .quick-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-bottom: 6px;
+    }
+
+    .quick-card-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Animations */
+    @keyframes blink {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes messageSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Modal styles for Chunks Viewer */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 800px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+      animation: messageSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 20px;
+      padding: 4px;
+      border-radius: 6px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      color: var(--text-color);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .chunks-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .chunks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chunk-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+      transition: border-color 0.2s;
+    }
+
+    .chunk-card:hover {
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .chunk-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .chunk-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-color);
+      background: rgba(99, 102, 241, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .chunk-section {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60%;
+    }
+
+    .chunk-text {
+      font-size: 13px;
+      color: var(--text-color);
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: inherit;
+      margin: 0;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    /* Mobile Responsiveness Styles */
+    .mobile-header-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 8px;
+      margin-right: 12px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .mobile-header-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 95;
+    }
+
+    @media (max-width: 768px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        z-index: 100;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar-backdrop.show {
+        display: block;
+      }
+
+      .mobile-header-btn {
+        display: flex;
+      }
+      
+      .topbar {
+        padding: 0 16px;
+      }
+      
+      .messages-area {
+        padding: 16px;
+      }
+      
+      .input-bar {
+        padding: 16px;
+      }
+      
+      .welcome-title {
+        font-size: 20px;
+      }
+      
+      .welcome-subtitle {
+        font-size: 13px;
+      }
+      
+      .quick-start-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- JSX Code -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    function App() {
+      const [messages, setMessages] = useState([]);
+      const [input, setInput] = useState("");
+      const [threadId, setThreadId] = useState(() => {
+        let id = localStorage.getItem("rag_thread_id");
+        if (!id || id === "default-thread") {
+          id = `thread-${Math.random().toString(36).substring(2, 10)}`;
+          localStorage.setItem("rag_thread_id", id);
+        }
+        return id;
+      });
+      const [threads, setThreads] = useState([]);
+      const [activeNode, setActiveNode] = useState("");
+      const [nodeStages, setNodeStages] = useState([]);
+      const [streamingText, setStreamingText] = useState("");
+      const [systemStatus, setSystemStatus] = useState("checking");
+      
+      // Ingestion States
+      const [uploading, setUploading] = useState(false);
+      const [ingestStatus, setIngestStatus] = useState(null); // { type: 'success'|'error'|'loading', message: '' }
+      const [documents, setDocuments] = useState([]);
+      const [selectedDoc, setSelectedDoc] = useState(null); // { filename: '', chunks: [] }
+      const [viewingChunks, setViewingChunks] = useState(false);
+      const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+      const messagesEndRef = useRef(null);
+      const fileInputRef = useRef(null);
+
+      // Fetch active threads and set up
+      useEffect(() => {
+        fetchThreads();
+        fetchHealth();
+        fetchDocuments();
+        loadConversationHistory(threadId);
+      }, [threadId]);
+
+      // Scroll to bottom on messages change
+      useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, [messages, streamingText, activeNode]);
+
+      const fetchThreads = async () => {
+        try {
+          const res = await fetch("/threads");
+          const data = await res.json();
+          if (data.threads && data.threads.length > 0) {
+            setThreads(data.threads);
+          } else {
+            setThreads(["default-thread"]);
+          }
+        } catch (e) {
+          console.error("Error fetching threads", e);
+        }
+      };
+
+      const fetchHealth = async () => {
+        try {
+          const res = await fetch("/health");
+          const data = await res.json();
+          setSystemStatus(data.status === "ok" ? "online" : "degraded");
+        } catch (e) {
+          setSystemStatus("offline");
+        }
+      };
+
+      const fetchDocuments = async () => {
+        try {
+          const res = await fetch("/documents");
+          const data = await res.json();
+          setDocuments(data.documents || []);
+        } catch (e) {
+          console.error("Error fetching documents", e);
+        }
+      };
+
+      const viewDocumentChunks = async (filename) => {
+        setIsSidebarOpen(false);
+        try {
+          const res = await fetch(`/documents/${encodeURIComponent(filename)}/chunks`);
+          const data = await res.json();
+          setSelectedDoc({
+            filename: filename,
+            chunks: data.chunks || []
+          });
+          setViewingChunks(true);
+        } catch (e) {
+          console.error("Error loading chunks", e);
+        }
+      };
+      const loadConversationHistory = async (id) => {
+        if (!id) return;
+        try {
+          const res = await fetch(`/conversations/${id}`);
+          if (res.status === 200) {
+            const data = await res.json();
+            // Map conversations from history
+            const hist = data.conversation_history || [];
+            const mapped = hist.map((msg, index) => ({
+              id: `hist-${index}`,
+              role: msg.role,
+              text: msg.content,
+              isComplete: true
+            }));
+            setMessages(mapped);
+          } else {
+            setMessages([]);
+          }
+        } catch (e) {
+          setMessages([]);
+        }
+      };
+
+      // Handle PDF upload
+      const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith(".pdf")) {
+          setIngestStatus({ type: "error", message: "Only PDF files supported." });
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        setUploading(true);
+        setIngestStatus({ type: "loading", message: `Parsing & embedding ${file.name}…` });
+
+        // Abort after 5 minutes — large PDFs need time to embed
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
+        try {
+          const res = await fetch("/ingest", {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          // Safely parse response — server may return JSON or plain text
+          let data = {};
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            data = await res.json();
+          } else {
+            const text = await res.text();
+            data = { detail: text };
+          }
+
+          if (res.ok) {
+            setIngestStatus({
+              type: "success",
+              message: `✓ Ingested ${file.name} — ${data.chunks} chunks created.`
+            });
+            fetchDocuments();
+          } else if (res.status === 413) {
+            setIngestStatus({ type: "error", message: "File too large. Maximum upload size is 50 MB." });
+          } else {
+            const detail = data.detail || `Server error ${res.status}`;
+            setIngestStatus({ type: "error", message: `Ingestion failed: ${detail}` });
+          }
+        } catch (err) {
+          clearTimeout(timeoutId);
+          if (err.name === "AbortError") {
+            setIngestStatus({ type: "error", message: "Upload timed out after 5 minutes. Try a smaller file." });
+          } else {
+            // fetch() itself threw — server unreachable or CORS issue
+            setIngestStatus({
+              type: "error",
+              message: `Cannot reach server: ${err.message}. Is the backend running on port 8000?`
+            });
+          }
+        } finally {
+          setUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+      };
+
+      // Native EventSource streaming using GET endpoint
+      const handleSend = async (e) => {
+        e.preventDefault();
+        const userText = input.trim();
+        if (!userText) return;
+
+        setInput("");
+        
+        // Add User Message
+        const userMsgId = `user-${Date.now()}`;
+        setMessages(prev => [...prev, {
+          id: userMsgId,
+          role: "user",
+          text: userText,
+          isComplete: true
+        }]);
+
+        setStreamingText("");
+        setActiveNode("query_analyzer");
+        setNodeStages(["query_analyzer"]);
+
+        const eventSourceUrl = `/query?question=${encodeURIComponent(userText)}&thread_id=${threadId}&stream=true`;
+        const es = new EventSource(eventSourceUrl);
+
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === "node_start") {
+              setActiveNode(data.node);
+              setNodeStages(prev => [...new Set([...prev, data.node])]);
+            }
+            
+            else if (data.type === "token") {
+              setStreamingText(prev => prev + data.content);
+            }
+            
+            else if (data.type === "done") {
+              es.close();
+              setActiveNode("");
+              
+              // Add AI Message permanently
+              setMessages(prev => [...prev, {
+                id: `ai-${Date.now()}`,
+                role: "assistant",
+                text: data.final_answer,
+                sources: data.sources || [],
+                grounded: data.grounded,
+                confidence: data.confidence,
+                metadata: data.metadata || {},
+                isComplete: true
+              }]);
+              setStreamingText("");
+              fetchThreads(); // Refresh threads list
+            }
+            
+            else if (data.type === "error") {
+              es.close();
+              setActiveNode("");
+              setMessages(prev => [...prev, {
+                id: `ai-err-${Date.now()}`,
+                role: "assistant",
+                text: `Error: ${data.message}`,
+                isComplete: true,
+                isError: true
+              }]);
+              setStreamingText("");
+            }
+          } catch (e) {
+            console.error("Error parsing event data", e);
+          }
+        };
+
+        es.onerror = (err) => {
+          es.close();
+          setActiveNode("");
+          setMessages(prev => [...prev, {
+            id: `ai-err-${Date.now()}`,
+            role: "assistant",
+            text: "Connection failed or was closed.",
+            isComplete: true,
+            isError: true
+          }]);
+          setStreamingText("");
+        };
+      };
+
+      const startNewThread = () => {
+        const newId = `thread-${uuidv4().substring(0, 8)}`;
+        localStorage.setItem("rag_thread_id", newId);
+        setThreadId(newId);
+        setMessages([]);
+        setIsSidebarOpen(false);
+      };
+
+      const selectThread = (id) => {
+        localStorage.setItem("rag_thread_id", id);
+        setThreadId(id);
+        setIsSidebarOpen(false);
+      };
+
+      const deleteThread = async (id, e) => {
+        e.stopPropagation();
+        if (confirm(`Clear memory for ${id}?`)) {
+          try {
+            await fetch(`/conversations/${id}`, { method: "DELETE" });
+            if (threadId === id) {
+              setMessages([]);
+            }
+            fetchThreads();
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      };
+
+      const deleteDocument = async (filename, e) => {
+        e.stopPropagation();
+        if (confirm(`Are you sure you want to delete "${filename}" from the database?`)) {
+          try {
+            const res = await fetch(`/documents/${encodeURIComponent(filename)}`, { method: "DELETE" });
+            if (res.ok) {
+              setIngestStatus({
+                type: "success",
+                message: `✓ Deleted ${filename} from the database.`
+              });
+              fetchDocuments();
+            } else {
+              setIngestStatus({
+                type: "error",
+                message: `Failed to delete ${filename}.`
+              });
+            }
+          } catch (err) {
+            console.error(err);
+            setIngestStatus({
+              type: "error",
+              message: `Error deleting document: ${err.message}`
+            });
+          }
+        }
+      };
+
+      const clearAllDocuments = async () => {
+        if (confirm("Are you sure you want to delete ALL ingested documents and reset the database? This cannot be undone.")) {
+          try {
+            const res = await fetch("/documents", { method: "DELETE" });
+            if (res.ok) {
+              setIngestStatus({
+                type: "success",
+                message: "✓ All documents deleted and database reset successfully."
+              });
+              fetchDocuments();
+            } else {
+              setIngestStatus({
+                type: "error",
+                message: "Failed to reset database."
+              });
+            }
+          } catch (err) {
+            console.error(err);
+            setIngestStatus({
+              type: "error",
+              message: `Error resetting database: ${err.message}`
+            });
+          }
+        }
+      };
+
+
+      const uuidv4 = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+
+      // Format Node Title for Display
+      const formatNode = (node) => {
+        return node
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, c => c.toUpperCase());
+      };
+
+      return (
+        <div className="app-container">
+          {/* Sidebar Backdrop overlay for mobile screens */}
+          <div 
+            className={`sidebar-backdrop ${isSidebarOpen ? 'show' : ''}`} 
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+          
+          {/* Sidebar */}
+          <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+            <div className="logo-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="logo-icon">
+                  <i className="fa-solid fa-graduation-cap text-white"></i>
+                </div>
+                <div className="logo-text">ResearchRAG</div>
+              </div>
+              <button 
+                className="mobile-header-btn" 
+                onClick={() => setIsSidebarOpen(false)}
+                style={{ margin: 0, padding: '4px 8px' }}
+                title="Close Sidebar"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div className="section-title">Ingest Research Papers</div>
+            
+            <div 
+              className="upload-area"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="file-input" 
+                accept=".pdf" 
+                onChange={handleFileUpload} 
+                disabled={uploading}
+              />
+              <div className="upload-icon">
+                <i className="fa-solid fa-cloud-arrow-up"></i>
+              </div>
+              <div className="upload-text">Upload PDF</div>
+              <div className="upload-subtext">Click to browse your documents</div>
+            </div>
+
+            {ingestStatus && (
+              <div className={`ingest-status ${ingestStatus.type}`} style={{ position: 'relative', paddingRight: '32px' }}>
+                {ingestStatus.type === "loading" && <i className="fa-solid fa-circle-notch spinner"></i>}
+                {ingestStatus.type === "success" && <i className="fa-solid fa-circle-check"></i>}
+                {ingestStatus.type === "error" && <i className="fa-solid fa-triangle-exclamation"></i>}
+                <span>{ingestStatus.message}</span>
+                {ingestStatus.type !== "loading" && (
+                  <button 
+                    onClick={() => setIngestStatus(null)} 
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'inherit',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      opacity: 0.6,
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Dismiss"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="section-title">
+              <span>Ingested Documents</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="action-btn-sm" onClick={clearAllDocuments} title="Clear all documents (Reset database)" style={{ color: 'var(--danger-color)' }}>
+                  <i className="fa-solid fa-broom"></i>
+                </button>
+                <button className="action-btn-sm" onClick={fetchDocuments} title="Refresh documents">
+                  <i className="fa-solid fa-rotate-right"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div className="session-list" style={{ maxHeight: '180px', overflowY: 'auto', marginBottom: '16px' }}>
+              {documents.length === 0 ? (
+                <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  No papers ingested yet.
+                </div>
+              ) : (
+                documents.map(doc => (
+                  <div 
+                    key={doc.filename} 
+                    className="session-item"
+                    onClick={() => viewDocumentChunks(doc.filename)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="session-name" title={doc.filename}>
+                      <i className="fa-solid fa-file-pdf" style={{ marginRight: '8px', color: '#ef4444' }}></i>
+                      {doc.filename}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ 
+                        fontSize: '10px', 
+                        background: 'rgba(255,255,255,0.08)', 
+                        padding: '2px 6px', 
+                        borderRadius: '4px',
+                        color: 'var(--text-muted)',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {doc.chunks} chunks
+                      </span>
+                      <div className="session-actions">
+                        <button className="action-btn-sm" onClick={(e) => deleteDocument(doc.filename, e)} title="Delete document">
+                          <i className="fa-solid fa-trash-can"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="section-title">
+              <span>Active Threads</span>
+              <button className="action-btn-sm" onClick={fetchThreads} title="Refresh threads">
+                <i className="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+            
+            <div className="session-list">
+              {threads.map(id => (
+                <div 
+                  key={id} 
+                  className={`session-item ${threadId === id ? 'active' : ''}`}
+                  onClick={() => selectThread(id)}
+                >
+                  <span className="session-name" title={id}>
+                    <i className="fa-solid fa-message mr-2" style={{ marginRight: '8px', opacity: 0.7 }}></i>
+                    {id}
+                  </span>
+                  <div className="session-actions">
+                    <button className="action-btn-sm" onClick={(e) => deleteThread(id, e)} title="Clear thread memory">
+                      <i className="fa-solid fa-trash-can"></i>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button className="btn-new-thread" onClick={startNewThread}>
+              <i className="fa-solid fa-plus"></i> New Conversation
+            </button>
+          </div>
+
+          {/* Chat Container */}
+          <div className="chat-container">
+            {/* Top Bar */}
+            <div className="topbar">
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <button className="mobile-header-btn" onClick={() => setIsSidebarOpen(true)} title="Open Sidebar">
+                  <i className="fa-solid fa-bars"></i>
+                </button>
+                <div>
+                  <div className="topbar-title">Advanced Research Assistant</div>
+                  <div className="topbar-subtitle">Active Session: {threadId}</div>
+                </div>
+              </div>
+              <div className="system-health">
+                <div className={`health-indicator`} style={{
+                  backgroundColor: systemStatus === "online" ? "#10b981" : systemStatus === "degraded" ? "#f59e0b" : "#ef4444",
+                  boxShadow: `0 0 8px ${systemStatus === "online" ? "#10b981" : systemStatus === "degraded" ? "#f59e0b" : "#ef4444"}`
+                }}></div>
+                <span>LLM Engine: {systemStatus}</span>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="messages-area">
+              {messages.length === 0 && !activeNode ? (
+                <div className="welcome-container">
+                  <h1 className="welcome-title">Research paper search & reasoning</h1>
+                  <p className="welcome-subtitle">
+                    Ask complex, deep analytical queries across all your ingested scientific PDFs. 
+                    Uses multi-step retrieval, relevance grading, and hallucination protection loops.
+                  </p>
+                  <div className="quick-start-grid">
+                    <div className="quick-card" onClick={() => setInput("Summarize the key contributions of the ingested paper")}>
+                      <div className="quick-card-title">Paper Summary</div>
+                      <div className="quick-card-text">Get a structured overview of the main findings.</div>
+                    </div>
+                    <div className="quick-card" onClick={() => setInput("What methodology does the paper use?")}>
+                      <div className="quick-card-title">Methodology</div>
+                      <div className="quick-card-text">Understand the approach and experimental setup.</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                messages.map(msg => (
+                  <MessageItem key={msg.id} message={msg} />
+                ))
+              )}
+
+              {/* Streaming Node Output */}
+              {activeNode && (
+                <div className="message ai">
+                  <div className="avatar">
+                    <i className="fa-solid fa-robot"></i>
+                  </div>
+                  <div className="bubble">
+                    {streamingText ? (
+                      <span>
+                        {streamingText}
+                        <span className="cursor"></span>
+                      </span>
+                    ) : (
+                      <span style={{ fontStyle: "italic", color: "var(--text-muted)" }}>
+                        Running agent node: {formatNode(activeNode)}...
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Pipeline Stage Overlay */}
+            {activeNode && (
+              <div className="pipeline-status">
+                <i className="fa-solid fa-circle-notch spinner"></i>
+                <span>Agent loop active: <strong>{formatNode(activeNode)}</strong></span>
+              </div>
+            )}
+
+            {/* Input Bar */}
+            <div className="input-bar">
+              <form onSubmit={handleSend} className="input-wrapper">
+                <input 
+                  type="text" 
+                  className="chat-input" 
+                  value={input} 
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a question about the papers..."
+                  disabled={!!activeNode}
+                />
+                <button type="submit" className="btn-send" disabled={!input.trim() || !!activeNode}>
+                  <i className="fa-solid fa-arrow-up"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Chunks Viewer Modal */}
+          {viewingChunks && selectedDoc && (
+            <div className="modal-overlay" onClick={() => setViewingChunks(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div className="modal-title">
+                    <i className="fa-solid fa-cubes" style={{ marginRight: '8px', color: 'var(--accent-color)' }}></i>
+                    Parsed Chunks: {selectedDoc.filename}
+                  </div>
+                  <button className="modal-close" onClick={() => setViewingChunks(false)}>
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <div className="chunks-meta">
+                    Generated <strong>{selectedDoc.chunks.length}</strong> chunks. Click anywhere outside to close.
+                  </div>
+                  <div className="chunks-list">
+                    {selectedDoc.chunks.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                        No chunks found for this document.
+                      </div>
+                    ) : (
+                      selectedDoc.chunks.map((chunk, idx) => (
+                        <div key={chunk.chunk_id || idx} className="chunk-card">
+                          <div className="chunk-card-header">
+                            <span className="chunk-badge">Chunk #{idx + 1}</span>
+                            {chunk.h1 && (
+                              <span className="chunk-badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+                                {chunk.h1} {chunk.h2 ? `> ${chunk.h2}` : ''}
+                              </span>
+                            )}
+                          </div>
+                          <pre className="chunk-text">{chunk.text}</pre>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Individual Message Component
+    function MessageItem({ message }) {
+      const [isOpen, setIsOpen] = useState(false);
+      const { role, text, sources, grounded, confidence, metadata, isError } = message;
+      const isAi = role === "assistant";
+
+      if (isError) {
+        return (
+          <div className="message ai">
+            <div className="avatar" style={{ background: "var(--danger-color)" }}>
+              <i className="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div className="bubble" style={{ borderColor: "rgba(239, 68, 68, 0.2)", background: "rgba(239, 68, 68, 0.05)" }}>
+              <span style={{ color: "var(--danger-color)", fontWeight: 500 }}>{text}</span>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className={`message ${role}`}>
+          <div className="avatar">
+            <i className={isAi ? "fa-solid fa-robot" : "fa-solid fa-user"}></i>
+          </div>
+          <div className="bubble">
+            <div>{text}</div>
+
+            {/* AI Diagnostics & Metadata */}
+            {isAi && metadata && (
+              <div className="diagnostics-banner">
+                <div className="diag-item">
+                  <span className={`badge ${grounded ? 'grounded' : 'not-grounded'}`}>
+                    {grounded ? 'Grounded' : 'Not Grounded'}
+                  </span>
+                </div>
+                <div className="diag-item">
+                  <i className="fa-solid fa-shield-halved"></i>
+                  <span>Confidence: {confidence ? (confidence * 100).toFixed(0) : 0}%</span>
+                </div>
+                <div className="diag-item">
+                  <i className="fa-solid fa-magnifying-glass"></i>
+                  <span>Query: {metadata.query_type}</span>
+                </div>
+                {metadata.retrieval_retries > 0 && (
+                  <div className="diag-item" style={{ color: "var(--warning-color)" }}>
+                    <i className="fa-solid fa-arrows-spin"></i>
+                    <span>Retrieved: {metadata.retrieval_retries}x</span>
+                  </div>
+                )}
+                {metadata.generation_retries > 0 && (
+                  <div className="diag-item" style={{ color: "var(--warning-color)" }}>
+                    <i className="fa-solid fa-arrows-spin"></i>
+                    <span>Generated: {metadata.generation_retries}x</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Citations Accordion */}
+            {isAi && sources && sources.length > 0 && (
+              <div className="citations-section">
+                <div className="citations-header" onClick={() => setIsOpen(!isOpen)}>
+                  <span>
+                    <i className="fa-solid fa-book-open mr-2" style={{ marginRight: '6px' }}></i>
+                    References ({sources.length} sources)
+                  </span>
+                  <i className={`fa-solid fa-chevron-${isOpen ? 'up' : 'down'}`}></i>
+                </div>
+                {isOpen && (
+                  <div className="citations-body">
+                    {sources.map((src, i) => (
+                      <div key={i} className="source-card">
+                        <div className="source-meta">
+                          <span className="source-title" title={src.source}>
+                            <i className="fa-regular fa-file-pdf" style={{ marginRight: '6px' }}></i>
+                            {src.source}
+                          </span>
+                          <span className="source-score" title="Relevance score from Qwen grader">
+                            Match: {(src.relevance_score * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="source-text">{src.text}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# Python byte cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local configurations & secrets
+.env
+.env.local
+.env.*.local
+
+# Local data directories
+pdfs/
+parsed/
+*.pdf
+*.mmd
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Editor/OS settings
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Agent planning logs
+.planning/
+.agents/

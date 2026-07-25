@@ -1,0 +1,83 @@
+
+
+services:
+  # ── Qdrant Vector Store ─────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_rag
+    restart: unless-stopped
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD", "/bin/bash", "-c", ":> /dev/tcp/127.0.0.1/6333"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Ollama Local LLM Engine ─────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_rag
+    restart: unless-stopped
+    ports:
+      - "11435:11434"
+    volumes:
+      - ${OLLAMA_VOLUME:-ollama_storage}:/root/.ollama
+    # If running with GPU support (NVIDIA), uncomment the lines below:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "/usr/bin/bash", "-c", ":> /dev/tcp/127.0.0.1/11434"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Ollama Models Pull Service ──────────────────────────────────────────────
+  ollama-pull-models:
+    image: curlimages/curl:latest
+    container_name: ollama_pull_models
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3.2:1b\"}' && curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3.2:3b\"}'"]
+
+  # ── FastAPI Application ─────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_rag_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./pdfs:/app/pdfs
+      - ./parsed:/app/parsed
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - PYTHONUTF8=1
+      - PYTHONIOENCODING=utf-8
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+volumes:
+  qdrant_storage:
+  ollama_storage:
