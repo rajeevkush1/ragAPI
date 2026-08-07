@@ -36,6 +36,18 @@ git clone https://github.com/rajeevkush1/ragAPI.git .
 echo "Configuring .env file..."
 cp .env.example .env
 
+# Fetch API Keys from GCP instance metadata and append to .env
+GROQ_KEY=$(curl -fsSL -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/groq-api-key 2>/dev/null)
+GEMINI_KEY=$(curl -fsSL -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/gemini-api-key 2>/dev/null)
+
+if [ ! -z "$GROQ_KEY" ]; then
+    echo "GROQ_API_KEY=$GROQ_KEY" >> .env
+fi
+if [ ! -z "$GEMINI_KEY" ]; then
+    echo "GEMINI_API_KEY=$GEMINI_KEY" >> .env
+fi
+
+
 # 5. Spin up Docker Compose stack
 echo "Starting Docker Compose services (CPU mode)..."
 docker compose -f docker-compose-cpu.yml up -d --build
