@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # ── Qdrant Vector Store ─────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_rag
+    restart: unless-stopped
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD", "/bin/bash", "-c", ":> /dev/tcp/127.0.0.1/6333"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Application (CPU Mode) ──────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_rag_app
+    restart: unless-stopped
+    ports:
+      - "80:8000"   # Maps HTTP port 80 on host to port 8000 inside container
+    env_file:
+      - .env
+    volumes:
+      - ./pdfs:/app/pdfs
+      - ./parsed:/app/parsed
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - PYTHONUTF8=1
+      - PYTHONIOENCODING=utf-8
+    depends_on:
+      qdrant:
+        condition: service_healthy
+
+volumes:
+  qdrant_storage:

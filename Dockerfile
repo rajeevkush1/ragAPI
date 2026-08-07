@@ -29,4 +29,5 @@ ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 
 # Launch server
-CMD ["python", "api.py"]
+CMD ["python", "agentic_api.py"]
+

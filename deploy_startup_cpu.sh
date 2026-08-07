@@ -30,7 +30,7 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 echo "Cloning codebase repository..."
 mkdir -p /opt/rag-app
 cd /opt/rag-app
-git clone https://github.com/rajeevkush1/rag-advanced-research.git .
+git clone https://github.com/rajeevkush1/ragAPI.git .
 
 # 4. Create default .env file
 echo "Configuring .env file..."
@@ -38,6 +38,6 @@ cp .env.example .env
 
 # 5. Spin up Docker Compose stack
 echo "Starting Docker Compose services (CPU mode)..."
-docker compose up -d --build
+docker compose -f docker-compose-cpu.yml up -d --build
 
 echo "System provisioning (CPU Mode) completed at $(date)"

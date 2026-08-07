@@ -202,11 +202,13 @@ async def health():
     model_class = resolved_llm.__class__.__name__
     model_name = getattr(resolved_llm, "model", getattr(resolved_llm, "model_name", "unknown"))
     
+    import os
+    active_port = int(os.getenv("PORT", "8000"))
     return {
         "status": "ok",
         "resolved_llm_class": model_class,
         "resolved_llm_model": model_name,
-        "port": 8001
+        "port": active_port
     }
 
 @app.get("/query", tags=["RAG"])
@@ -598,4 +600,6 @@ async def ingest_endpoint(
 
 
 if __name__ == "__main__":
-    uvicorn.run("agentic_api:app", host="0.0.0.0", port=8001, reload=False)
+    import os
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("agentic_api:app", host="0.0.0.0", port=port, reload=False)
