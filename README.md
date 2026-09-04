@@ -4,6 +4,10 @@
 
 A production-ready Agentic RAG stack for AI research papers — featuring dynamic local embedding model selection, hybrid dense-sparse retrieval (BM25 + Dense + RRF), Nvidia Nemotron main LLM with local Ollama fallback, and a premium React chat interface.
 
+### 🔗 Quick Links
+* 🌐 **Live Web Application**: [http://127.0.0.1:8001/](http://127.0.0.1:8001/)
+* ⚡ **FastAPI Swagger Docs**: [http://127.0.0.1:8001/docs](http://127.0.0.1:8001/docs)
+
 ---
 
 ## Architecture Diagram
