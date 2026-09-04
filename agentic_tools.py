@@ -37,20 +37,39 @@ def _rrf_score(dense_rank: int, bm25_rank: int, k: int = 60) -> float:
     bm25_contrib  = 1.0 / (k + bm25_rank) if bm25_rank >= 0 else 0.0
     return dense_contrib + bm25_contrib
 
-def local_hybrid_retrieve(query: str, embedding_model: str, top_k: int = 6) -> list[dict]:
+def local_hybrid_retrieve(
+    query: str, 
+    embedding_model: str, 
+    top_k: int = 6, 
+    retrieval_strategy: str = "hybrid",
+    session_id: str | None = None
+) -> list[dict]:
     """
-    Perform local hybrid retrieval (dense via local FastEmbed + local BM25, merged via RRF).
+    Perform local retrieval using FastEmbed + Qdrant (dense) and/or BM25 (sparse).
+    Filters candidates by session_id (session-specific + global documents).
     """
     # 1. Fetch dense query vector via local FastEmbed
     embed = get_local_embed_model(embedding_model)
     q_vec = list(embed.embed([query]))[0].tolist()
 
-    # 2. Query local Qdrant instance for dense candidates
+    # 2. Build Qdrant query filter for session isolation
+    from qdrant_client.models import Filter, FieldCondition, MatchValue
+    query_filter = None
+    if session_id and session_id != "global":
+        query_filter = Filter(
+            should=[
+                FieldCondition(key="session_id", match=MatchValue(value=session_id)),
+                FieldCondition(key="session_id", match=MatchValue(value="global")),
+            ]
+        )
+
+    # 3. Query local Qdrant instance for dense candidates
     qdrant = QdrantClient(url=config.QDRANT_URL)
-    candidate_k = top_k * 3
+    candidate_k = max(top_k * 3, 15)
     response = qdrant.query_points(
         collection_name=config.COLLECTION_NAME,
         query=q_vec,
+        query_filter=query_filter,
         limit=candidate_k,
         score_threshold=config.SCORE_THRESH,
         with_payload=True
@@ -62,13 +81,17 @@ def local_hybrid_retrieve(query: str, embedding_model: str, top_k: int = 6) -> l
     # Build candidates list
     candidates = []
     for rank, r in enumerate(results):
+        payload = r.payload or {}
         candidates.append({
-            "text":       r.payload.get("text", ""),
-            "source":     r.payload.get("source", "unknown"),
-            "h1":         r.payload.get("h1", ""),
-            "h2":         r.payload.get("h2", ""),
-            "chunk_id":   r.payload.get("chunk_id", ""),
-            "dense_score": r.score,
+            "text":        payload.get("text", ""),
+            "source":      payload.get("source", "unknown"),
+            "h1":          payload.get("h1", ""),
+            "h2":          payload.get("h2", ""),
+            "authors":     payload.get("authors", ""),
+            "venue":       payload.get("venue", ""),
+            "year":        payload.get("year", ""),
+            "chunk_id":    payload.get("chunk_id", ""),
+            "dense_score": float(r.score),
             "dense_rank":  rank,
             "bm25_rank":   -1,
             "bm25_score":  0.0,
@@ -89,11 +112,28 @@ def local_hybrid_retrieve(query: str, embedding_model: str, top_k: int = 6) -> l
         candidates[candidate_idx]["bm25_rank"]  = bm25_rank
         candidates[candidate_idx]["bm25_score"] = float(bm25_scores[candidate_idx])
 
-    # 4. RRF merge
+    # 4. Strategy ranking & RRF merge
+    strat = (retrieval_strategy or "hybrid").lower()
     for c in candidates:
         c["rrf_score"] = _rrf_score(c["dense_rank"], c["bm25_rank"])
 
-    candidates.sort(key=lambda c: c["rrf_score"], reverse=True)
+    if "dense" in strat:
+        candidates.sort(key=lambda c: c["dense_score"], reverse=True)
+        # Normalize dense score to 0..1 range
+        max_s = max(c["dense_score"] for c in candidates) or 1.0
+        for c in candidates:
+            c["relevance_score"] = min(0.99, max(0.50, round(c["dense_score"] / max_s, 2)))
+    elif "sparse" in strat or "bm25" in strat:
+        candidates.sort(key=lambda c: c["bm25_score"], reverse=True)
+        max_b = max(c["bm25_score"] for c in candidates) or 1.0
+        for c in candidates:
+            c["relevance_score"] = min(0.99, max(0.50, round(c["bm25_score"] / max_b, 2)))
+    else:  # hybrid
+        candidates.sort(key=lambda c: c["rrf_score"], reverse=True)
+        max_r = max(c["rrf_score"] for c in candidates) or 1.0
+        for c in candidates:
+            c["relevance_score"] = min(0.99, max(0.50, round(c["rrf_score"] / max_r, 2)))
+
     return candidates[:top_k]
 
 @tool
@@ -103,18 +143,38 @@ def retrieve_research_papers(query: str, config_run: RunnableConfig) -> str:
     Use this whenever you need factual context to answer questions about AI papers, machine learning,
     system architecture, or mathematical formulas contained in the loaded documents.
     """
-    # Extract the requested embedding model from runtime LangGraph config
-    emb_model = config_run.get("configurable", {}).get("embedding_model", "BAAI/bge-small-en-v1.5")
+    configurable = config_run.get("configurable", {})
+    emb_model = configurable.get("embedding_model", "BAAI/bge-small-en-v1.5")
+    top_k = configurable.get("top_k", config.TOP_K)
+    strategy = configurable.get("retrieval_strategy", "hybrid")
+    session_id = configurable.get("thread_id") or configurable.get("session_id")
     
     try:
-        docs = local_hybrid_retrieve(query=query, embedding_model=emb_model, top_k=config.TOP_K)
+        docs = local_hybrid_retrieve(
+            query=query, 
+            embedding_model=emb_model, 
+            top_k=top_k, 
+            retrieval_strategy=strategy,
+            session_id=session_id
+        )
         if not docs:
             return "No relevant context found in the research papers. The user might need to ingest more PDFs."
 
         formatted_docs = []
         for idx, doc in enumerate(docs, 1):
+            source_info = doc.get("source", "paper.pdf")
+            authors = doc.get("authors", "")
+            venue = doc.get("venue", "")
+            year = doc.get("year", "")
+            meta_str = f"Source: {source_info} | Title: {doc.get('h1', '')} > {doc.get('h2', '')}"
+            if authors:
+                meta_str += f" | Authors: {authors}"
+            if venue or year:
+                meta_str += f" | Venue: {venue} ({year})"
+            meta_str += f" | Relevance: {doc.get('relevance_score', 0.95)}"
+
             formatted_docs.append(
-                f"[Doc {idx}] Source: {doc.get('source')} | Title: {doc.get('h1', '')} > {doc.get('h2', '')}\n"
+                f"[Doc {idx}] {meta_str}\n"
                 f"Content: {doc.get('text')}"
             )
         return "\n\n---\n\n".join(formatted_docs)

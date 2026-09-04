@@ -1,8 +1,8 @@
 # Advanced Agentic RAG Pipeline
 
-**LangGraph ReAct Loop + Qdrant + local FastEmbed + FastAPI UI + Multi-LLM Provider (Groq / Gemini / Ollama)**
+**LangGraph ReAct Loop + Qdrant + local FastEmbed + FastAPI UI + Nvidia Nemotron Main LLM + Ollama Fallback**
 
-A production-ready Agentic RAG stack for AI research papers — featuring dynamic local embedding model selection, hybrid dense-sparse retrieval (BM25 + Dense + RRF), dynamic LLM provider fallbacks, and a premium React chat interface.
+A production-ready Agentic RAG stack for AI research papers — featuring dynamic local embedding model selection, hybrid dense-sparse retrieval (BM25 + Dense + RRF), Nvidia Nemotron main LLM with local Ollama fallback, and a premium React chat interface.
 
 ---
 
@@ -23,7 +23,7 @@ QUERY AGENT LOOP (LangGraph ReAct):
                                    ▼
          ┌──────────────────────────────────────────────────┐
          │      ReAct Agent LLM Router Decision Loop        │
-         │   (Precedence: Groq ──► Gemini ──► Ollama)       │
+         │ (Main: Nemotron ──► Fallback: Local Ollama)      │
          └───────────┬──────────────────────────▲───────────┘
                      │                          │
            Needs Context?                  Yield Answer
@@ -50,10 +50,9 @@ QUERY AGENT LOOP (LangGraph ReAct):
 
 1. **Dynamic Embedding Selection:** Toggle between `BAAI/bge-small-en-v1.5` (More Accurate) and `BAAI/bge-tiny-en-v1.5` (Faster, mapped to `sentence-transformers/all-MiniLM-L6-v2`) directly in the UI. Both map to a 384-dimensional vector space, preventing database conflicts.
 2. **On-Device Embeddings:** Generating vectors locally via ONNX-backed FastEmbed — completely eliminating third-party embedding API costs and keys (`HF_TOKEN` is discarded).
-3. **Adaptive LLM Routing:** Dynamic startup selection checks your API keys:
-   * **Groq** (`llama-3.3-70b-versatile`) $\rightarrow$ Primary choice (insanely fast, highly accurate).
-   * **Gemini** (`gemini-1.5-flash`) $\rightarrow$ Secondary choice (large context, free tier).
-   * **Ollama** (`llama3.2:3b` / user preference) $\rightarrow$ Tertiary local fallback if offline or no keys provided.
+3. **Adaptive LLM Routing & Fallback:** Nemotron main LLM with seamless Ollama fallback:
+   * **Nvidia Nemotron** (`nvidia/llama-3.1-nemotron-70b-instruct`) $\rightarrow$ Primary main LLM (via `NVIDIA_API_KEY` or `OPENROUTER_API_KEY`).
+   * **Ollama** (`llama3.2:3b`) $\rightarrow$ Local fallback LLM active when offline, missing cloud keys, or during runtime API errors.
 4. **Hybrid Retrieval (RRF):** Merges semantic dense matches from Qdrant with lexical sparse matches from Rank-BM25 using Reciprocal Rank Fusion (RRF) for optimal context quality.
 5. **SSE Streaming UI:** Real-time token streaming and step-by-step pipeline node tracking delivered directly to the custom React-based frontend.
 
@@ -70,10 +69,15 @@ docker compose up -d
 ### 2. Configure Environment Keys
 Copy `.env.example` to `.env` and configure your API keys:
 ```env
-GROQ_API_KEY=your_real_groq_key_here
-GEMINI_API_KEY=your_real_gemini_key_here
+# Main LLM: Nvidia Nemotron (Nvidia AI Endpoints or OpenRouter)
+NVIDIA_API_KEY=your_nvidia_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+
+# Fallback LLM: Local Ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2:3b
 ```
-*(If no keys are configured, it will attempt to connect to your local Ollama server).*
+*(If no cloud keys are configured, it will seamlessly fall back to your local Ollama server).*
 
 ### 3. Install Dependencies
 Initialize your virtual environment and install package dependencies:

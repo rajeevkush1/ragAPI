@@ -23,7 +23,7 @@ from agentic_graph import build_agent_graph, get_llm
 eval_graph = build_agent_graph(checkpointer=None)
 
 class RAGDeepEvalLLM(DeepEvalBaseLLM):
-    """DeepEval evaluator model wrapper around our dynamically resolved LLM (Groq/Gemini)."""
+    """DeepEval evaluator model wrapper around our dynamically resolved LLM (Nemotron main / Ollama fallback)."""
     def __init__(self):
         self.chat_model = get_llm()
         self.model_name = getattr(self.chat_model, "model", getattr(self.chat_model, "model_name", "unknown"))

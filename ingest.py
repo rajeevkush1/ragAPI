@@ -317,22 +317,54 @@ def upsert_chunks(client: QdrantClient, chunks: list[dict]) -> None:
 
 
 # ── Top-level ingest function ─────────────────────────────────────────────────
+def delete_session_data(session_id: str) -> int:
+    """Delete all points in Qdrant and local temporary files for a specific session_id."""
+    if not session_id or session_id == "global":
+        return 0
+    from qdrant_client.models import Filter, FieldCondition, MatchValue
+    try:
+        client = get_qdrant_client()
+        client.delete(
+            collection_name=config.COLLECTION_NAME,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(
+                        key="session_id",
+                        match=MatchValue(value=session_id)
+                    )
+                ]
+            )
+        )
+        session_dir = config.PDF_DIR / "sessions" / session_id
+        if session_dir.exists():
+            import shutil
+            shutil.rmtree(session_dir, ignore_errors=True)
+        config.logger.info(f"Deleted temporary vectors & files for session_id '{session_id}'")
+        return 1
+    except Exception as exc:
+        config.logger.error(f"Failed to delete session data for '{session_id}': {exc}")
+        return 0
+
+
 def ingest_pdf(
     pdf_path: Path,
     parser: Literal["auto", "pymupdf", "marker"] = "auto",
     embedding_model: str | None = None,
+    session_id: str = "global",
 ) -> dict:
-    """Full pipeline for a single PDF. Returns stats dict."""
+    """Full pipeline for a single PDF tagged with session_id. Returns stats dict."""
     pdf_path = pdf_path.resolve()
-    console.rule(f"[bold blue]Ingesting[/bold blue] {pdf_path.name}")
+    console.rule(f"[bold blue]Ingesting[/bold blue] {pdf_path.name} (session: {session_id})")
 
     # 1. Parse
     markdown, parser_used = parse_pdf(pdf_path, parser=parser)
 
     source_metadata = {
-        "source":    pdf_path.name,
-        "parser":    parser_used,
-        "file_size": pdf_path.stat().st_size,
+        "source":       pdf_path.name,
+        "parser":       parser_used,
+        "file_size":    pdf_path.stat().st_size,
+        "session_id":   session_id,
+        "is_temporary": session_id != "global",
     }
 
     # 2. Split

@@ -17,37 +17,10 @@ from agentic_state import AgentState
 from agentic_tools import retrieve_research_papers
 import config
 
-def get_llm():
-    """
-    Dynamically resolve which LLM to use based on available API keys in environment.
-    Precedence: Groq -> Gemini -> Ollama (local)
-    """
-    # 1. Check for Groq API key
-    groq_key = os.getenv("GROQ_API_KEY")
-    if groq_key and not groq_key.startswith("your_"):
-        try:
-            from langchain_groq import ChatGroq
-            return ChatGroq(
-                model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
-                temperature=0.1,
-            )
-        except ImportError:
-            pass
-
-    # 2. Check for Gemini API key
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if gemini_key and not gemini_key.startswith("your_"):
-        try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-            return ChatGoogleGenerativeAI(
-                model=os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
-                temperature=0.1,
-            )
-        except ImportError:
-            pass
-
-    # 3. Fallback to Ollama local instance
+def get_fallback_llm():
+    """Returns the local Ollama fallback LLM instance."""
     from langchain_ollama import ChatOllama
+    config.logger.info(f"Initialized Ollama fallback model: '{config.OLLAMA_MODEL}' at '{config.OLLAMA_BASE_URL}'")
     return ChatOllama(
         model=config.OLLAMA_MODEL,
         base_url=config.OLLAMA_BASE_URL,
@@ -55,24 +28,80 @@ def get_llm():
         client_kwargs={"timeout": config.OLLAMA_TIMEOUT},
     )
 
-def get_gemini_llm():
-    """Specifically retrieve the Gemini LLM for judging/evaluation purposes."""
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if gemini_key and not gemini_key.startswith("your_"):
+def get_main_llm():
+    """
+    Instantiates Nvidia Nemotron as the main LLM.
+    Supports Nvidia AI Endpoints (NVIDIA_API_KEY) or OpenRouter (OPENROUTER_API_KEY).
+    """
+    from langchain_openai import ChatOpenAI
+
+    # 1. Try direct Nvidia API endpoint
+    nvidia_key = config.NVIDIA_API_KEY
+    if nvidia_key and not nvidia_key.startswith("your_"):
         try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-            return ChatGoogleGenerativeAI(
-                model=os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
+            config.logger.info(f"Initialized Main LLM (Nvidia API): '{config.NEMOTRON_MODEL}'")
+            return ChatOpenAI(
+                model=config.NEMOTRON_MODEL,
+                api_key=nvidia_key,
+                base_url=config.NVIDIA_BASE_URL,
                 temperature=0.1,
             )
-        except ImportError:
-            pass
+        except Exception as exc:
+            config.logger.warning(f"Failed to initialize direct Nvidia API: {exc}")
+
+    # 2. Try OpenRouter configured with Nemotron model
+    openrouter_key = config.OPENROUTER_API_KEY
+    if openrouter_key and not openrouter_key.startswith("your_"):
+        try:
+            model_name = config.OPENROUTER_MODEL
+            if "llama-3.3-70b" in model_name or "llama-3.1-nemotron-70b" in model_name:
+                model_name = "nvidia/nemotron-3.5-lightning:free"
+            config.logger.info(f"Initialized Main LLM (OpenRouter Nemotron): '{model_name}'")
+            return ChatOpenAI(
+                model=model_name,
+                api_key=openrouter_key,
+                base_url=config.OPENROUTER_BASE_URL,
+                temperature=0.1,
+                default_headers={
+                    "HTTP-Referer": "http://localhost:8000",
+                    "X-Title": "Agentic RAG Nemotron"
+                }
+            )
+        except Exception as exc:
+            config.logger.warning(f"Failed to initialize OpenRouter Nemotron: {exc}")
+
+    config.logger.info("No cloud API keys set for main LLM; using Ollama directly.")
     return None
 
-# Get resolved LLM and bind our retrieval tool
-llm = get_llm()
+def get_llm():
+    """
+    Returns the resolved LLM runnable: Nemotron as main LLM with Ollama as fallback.
+    If no main cloud API key is present, defaults to Ollama directly.
+    """
+    fallback_llm = get_fallback_llm()
+    main_llm = get_main_llm()
+
+    if main_llm is not None:
+        return main_llm.with_fallbacks([fallback_llm])
+    return fallback_llm
+
+def get_llm_with_tools(tools_list):
+    """
+    Binds tools to main and fallback LLMs and configures runtime fallback.
+    """
+    fallback_llm = get_fallback_llm()
+    fallback_with_tools = fallback_llm.bind_tools(tools_list)
+    
+    main_llm = get_main_llm()
+    if main_llm is not None:
+        main_with_tools = main_llm.bind_tools(tools_list)
+        return main_with_tools.with_fallbacks([fallback_with_tools])
+    return fallback_with_tools
+
+# Instantiate LLM and bind retrieval tool
 tools = [retrieve_research_papers]
-llm_with_tools = llm.bind_tools(tools)
+llm = get_llm()
+llm_with_tools = get_llm_with_tools(tools)
 
 
 def call_model(state: AgentState):
@@ -99,8 +128,7 @@ def call_model(state: AgentState):
 
 def judge_node(state: AgentState):
     """
-    Critic node using Gemini to evaluate the answer generated by Groq.
-    Checks if the answer is grounded in retrieved documents.
+    Critic node evaluating whether the proposed answer is factually grounded in retrieved documents.
     """
     messages = state.messages
     
@@ -137,26 +165,6 @@ def judge_node(state: AgentState):
         )
         return {"messages": [updated_msg]}
         
-    # 3. Invoke Gemini to grade if keys exist and model class is not Gemini itself (no need to self-judge)
-    gemini = get_gemini_llm()
-    # Check if Groq was actually resolved (meaning resolved class name contains Groq or Ollama)
-    is_groq_or_ollama = "ChatGroq" in str(type(llm)) or "ChatOllama" in str(type(llm))
-    
-    if not gemini or not is_groq_or_ollama:
-        # Default pass-through values if Gemini judge is unavailable
-        diagnostics = {
-            "grounded": True,
-            "confidence": 0.95,
-            "query_type": "vector",
-            "judge_reason": "Direct pass-through. Gemini critic evaluator bypassed."
-        }
-        updated_msg = AIMessage(
-            id=target_msg.id,
-            content=target_msg.content,
-            additional_kwargs={"diagnostics": diagnostics}
-        )
-        return {"messages": [updated_msg]}
-        
     context_str = "\n\n---\n\n".join(retrieved_contexts)
     prompt = (
         "You are an expert evaluator. Evaluate if the proposed answer is factually grounded in the provided retrieved context. "
@@ -170,7 +178,7 @@ def judge_node(state: AgentState):
     )
     
     try:
-        response = gemini.invoke([HumanMessage(content=prompt)])
+        response = llm.invoke([HumanMessage(content=prompt)])
         cleaned_content = response.content.strip().replace("```json", "").replace("```", "").strip()
         res_json = json.loads(cleaned_content)
         
@@ -178,29 +186,15 @@ def judge_node(state: AgentState):
             "grounded": res_json.get("grounded", True),
             "confidence": res_json.get("confidence", 0.95),
             "query_type": "vector",
-            "judge_reason": f"[Gemini Judge] {res_json.get('reason', 'Evaluation complete.')}"
+            "judge_reason": f"[Critic Judge] {res_json.get('reason', 'Evaluation complete.')}"
         }
-    except Exception as gemini_exc:
-        # Self-healing fallback: If Gemini fails (404/429), dynamically evaluate using Groq instead!
-        try:
-            fallback_llm = get_llm()
-            response = fallback_llm.invoke([HumanMessage(content=prompt)])
-            cleaned_content = response.content.strip().replace("```json", "").replace("```", "").strip()
-            res_json = json.loads(cleaned_content)
-            
-            diagnostics = {
-                "grounded": res_json.get("grounded", True),
-                "confidence": res_json.get("confidence", 0.95),
-                "query_type": "vector",
-                "judge_reason": f"[Groq Judge (Gemini Fallback)] {res_json.get('reason', 'Evaluation complete.')}"
-            }
-        except Exception as groq_exc:
-            diagnostics = {
-                "grounded": True,
-                "confidence": 0.85,
-                "query_type": "vector",
-                "judge_reason": f"Evaluators failed (Gemini: {gemini_exc} | Groq: {groq_exc})"
-            }
+    except Exception as exc:
+        diagnostics = {
+            "grounded": True,
+            "confidence": 0.85,
+            "query_type": "vector",
+            "judge_reason": f"Evaluator bypassed ({exc})"
+        }
         
     updated_msg = AIMessage(
         id=target_msg.id,
@@ -211,7 +205,7 @@ def judge_node(state: AgentState):
 
 
 def route_after_agent(state: AgentState):
-    """If tool calls exist, continue to tools node. Otherwise, pass to Gemini judge."""
+    """If tool calls exist, continue to tools node. Otherwise, pass to critic judge."""
     messages = state.messages
     last_msg = messages[-1]
     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:

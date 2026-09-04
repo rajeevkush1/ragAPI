@@ -38,7 +38,7 @@ wheel>=0.47.0
 # Alternatively install nougat-ocr with Python 3.11/3.12 in a venv
 
 # ── Cloud Model APIs & Hugging Face ───────────────────────────────────────────
-langchain-groq>=0.2.0
-langchain-google-genai>=0.2.0
+langchain-openai>=0.2.0
 langchain-huggingface>=0.1.0
 deepeval>=0.9.0
+

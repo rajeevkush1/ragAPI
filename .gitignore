@@ -29,5 +29,6 @@ env/
 Thumbs.db
 
 # Agent planning logs
+logs/
 .planning/
 .agents/

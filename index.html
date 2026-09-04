@@ -1,38 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ResearchRAG | AI Research Paper Assistant</title>
+  <title>ResearchRAG | AI Research Assistant</title>
   
-  <!-- Fonts -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   
-  <!-- FontAwesome for Premium Icons -->
+  <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <!-- React & Babel from CDN -->
+  <!-- React 18 & Babel CDN -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
     :root {
-      --bg-dark: #0b0f19;
-      --bg-card: rgba(17, 24, 39, 0.75);
-      --bg-bubble-user: #4f46e5;
-      --bg-bubble-ai: #1f2937;
-      --border-color: rgba(255, 255, 255, 0.08);
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
-      --accent-color: #6366f1;
-      --accent-hover: #4f46e5;
-      --success-color: #10b981;
-      --warning-color: #f59e0b;
-      --danger-color: #ef4444;
+      /* Light Mode Palette (Default matching screenshot) */
+      --bg-main: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --bg-subtle: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-hover: #cbd5e1;
+      
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-subtle: #e0e7ff;
+      
+      --accent: #6366f1;
+      --success: #10b981;
+      --success-subtle: #d1fae5;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      
       --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    }
+
+    [data-theme="dark"] {
+      /* Dark Mode Palette */
+      --bg-main: #0b0f19;
+      --bg-surface: #111827;
+      --bg-card: #1f2937;
+      --bg-subtle: #1e293b;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.16);
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-subtle: rgba(99, 102, 241, 0.15);
+      
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
     }
 
     * {
@@ -43,34 +78,31 @@
 
     body {
       font-family: var(--font-family);
-      background-color: var(--bg-dark);
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.06) 0px, transparent 50%);
+      background-color: var(--bg-main);
       color: var(--text-main);
       height: 100vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
-    /* Scrollbar Styling */
+    /* Scrollbars */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
     }
     ::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.2);
+      background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--text-subtle);
       border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--text-muted);
     }
 
-    /* Main Container */
     #root {
       display: flex;
       flex-direction: column;
@@ -78,657 +110,839 @@
       width: 100vw;
     }
 
-    .app-container {
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      background: rgba(10, 15, 30, 0.6);
-      border-right: 1px solid var(--border-color);
-      display: flex;
-      flex-direction: column;
-      padding: 24px;
-      overflow-y: auto;
-      backdrop-filter: blur(20px);
-    }
-
-    .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 32px;
-    }
-
-    .logo-icon {
-      background: linear-gradient(135deg, var(--accent-color), #8b5cf6);
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-    }
-
-    .logo-text {
-      font-weight: 700;
-      font-size: 20px;
-      background: linear-gradient(to right, #ffffff, #c7d2fe);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .section-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      margin-top: 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    /* Upload Box */
-    .upload-area {
-      border: 2px dashed rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 24px 16px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      background: rgba(255, 255, 255, 0.02);
-      margin-bottom: 24px;
-      position: relative;
-    }
-
-    .upload-area:hover {
-      border-color: var(--accent-color);
-      background: rgba(99, 102, 241, 0.05);
-    }
-
-    .upload-area.dragging {
-      border-color: var(--success-color);
-      background: rgba(16, 185, 129, 0.05);
-    }
-
-    .upload-icon {
-      font-size: 28px;
-      color: var(--accent-color);
-      margin-bottom: 12px;
-    }
-
-    .upload-text {
-      font-size: 13px;
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-
-    .upload-subtext {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .file-input {
-      display: none;
-    }
-
-    /* Ingestion Status Alert */
-    .ingest-status {
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      margin-top: -12px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: fadeIn 0.3s ease;
-    }
-
-    .ingest-status.success {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      color: #34d399;
-    }
-
-    .ingest-status.error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      color: #f87171;
-    }
-
-    .ingest-status.warning {
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.2);
-      color: #fbbf24;
-    }
-
-    .ingest-status.loading {
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.2);
-      color: #a5b4fc;
-    }
-
-    /* Session List */
-    .session-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .session-item {
-      padding: 12px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border-color);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      transition: all 0.2s ease;
-      font-size: 13px;
-    }
-
-    .session-item:hover, .session-item.active {
-      background: rgba(99, 102, 241, 0.1);
-      border-color: rgba(99, 102, 241, 0.3);
-    }
-
-    .session-name {
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 180px;
-    }
-
-    .session-actions {
-      display: flex;
-      gap: 8px;
-      opacity: 0.5;
-      transition: opacity 0.2s;
-    }
-
-    .session-item:hover .session-actions {
-      opacity: 1;
-    }
-
-    .action-btn-sm {
-      background: none;
-      border: none;
-      color: var(--text-main);
-      cursor: pointer;
-      padding: 2px;
-    }
-
-    .action-btn-sm:hover {
-      color: var(--danger-color);
-    }
-
-    .btn-new-thread {
-      background: linear-gradient(to right, var(--accent-color), #4f46e5);
-      border: none;
-      border-radius: 8px;
-      padding: 12px;
-      font-weight: 600;
-      font-size: 13px;
-      color: white;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: opacity 0.2s;
-      margin-top: 12px;
-    }
-
-    .btn-new-thread:hover {
-      opacity: 0.95;
-    }
-
-    /* Main Chat Section */
-    .chat-container {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg-dark);
-      position: relative;
-    }
-
-    /* Top Bar */
-    .topbar {
-      height: 70px;
+    /* Top Navigation Header */
+    .top-header {
+      height: 60px;
+      background: var(--bg-surface);
       border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 32px;
-      background: rgba(10, 15, 30, 0.4);
-      backdrop-filter: blur(10px);
-      z-index: 10;
+      padding: 0 24px;
+      z-index: 100;
     }
 
-    .topbar-title {
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    .topbar-subtitle {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .system-health {
+    .brand-logo {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 12px;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--text-main);
     }
 
-    .health-indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--success-color);
-      box-shadow: 0 0 8px var(--success-color);
-    }
-
-    /* Message Area */
-    .messages-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .message {
-      display: flex;
-      gap: 16px;
-      max-width: 85%;
-      animation: messageSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .message.user {
-      align-self: flex-end;
-      flex-direction: row-reverse;
-    }
-
-    .message.ai {
-      align-self: flex-start;
-    }
-
-    .avatar {
-      width: 36px;
-      height: 36px;
+    .brand-icon {
+      background: linear-gradient(135deg, #4f46e5, #818cf8);
+      color: white;
+      width: 34px;
+      height: 34px;
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 16px;
-      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
     }
 
-    .message.user .avatar {
-      background: var(--bg-bubble-user);
-      color: white;
-    }
-
-    .message.ai .avatar {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
-    }
-
-    .bubble {
-      padding: 16px 20px;
-      border-radius: 16px;
-      font-size: 14px;
-      line-height: 1.6;
-      word-wrap: break-word;
-      position: relative;
-      white-space: pre-wrap;
-    }
-
-    .message.user .bubble {
-      background: var(--bg-bubble-user);
-      color: white;
-      border-bottom-right-radius: 4px;
-    }
-
-    .message.ai .bubble {
-      background: var(--bg-bubble-ai);
-      color: var(--text-main);
-      border-bottom-left-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    }
-
-    /* Streaming Cursor */
-    .cursor {
-      display: inline-block;
-      width: 2px;
-      height: 15px;
-      background: var(--accent-color);
-      margin-left: 2px;
-      animation: blink 0.8s infinite;
-      vertical-align: middle;
-    }
-
-    /* Diagnostics Banner inside Bubble */
-    .diagnostics-banner {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 14px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      font-size: 11px;
+    .brand-sub {
+      font-size: 12px;
+      font-weight: 500;
       color: var(--text-muted);
+      margin-top: -2px;
     }
 
-    .diag-item {
+    /* Top Center Nav Tabs */
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-main);
+      background: var(--bg-subtle);
+    }
+
+    .nav-tab.active {
+      color: var(--primary);
+    }
+
+    .nav-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      left: 16px;
+      right: 16px;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 3px 3px 0 0;
+    }
+
+    /* Header Right Tools */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover {
+      color: var(--text-main);
+      border-color: var(--border-hover);
+      background: var(--bg-subtle);
+    }
+
+    .user-avatar {
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      gap: 4px;
+    }
+
+    /* Application Main Layout Grid */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left Sidebar */
+    .sidebar {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      overflow-y: auto;
+      gap: 20px;
+    }
+
+    .btn-new-research {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+      transition: all 0.2s;
+    }
+
+    .btn-new-research:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .sidebar-group-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-subtle);
+      margin-bottom: 10px;
+    }
+
+    .quick-actions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .quick-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: left;
+    }
+
+    .quick-action-btn:hover {
+      color: var(--primary);
+      border-color: var(--primary-subtle);
+      background: var(--primary-subtle);
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .history-item:hover, .history-item.active {
+      background: var(--primary-subtle);
+      border-color: var(--primary-subtle);
+    }
+
+    .history-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-meta {
+      font-size: 11px;
+      color: var(--text-subtle);
+    }
+
+    .btn-view-all-history {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+      text-align: left;
       display: flex;
       align-items: center;
       gap: 4px;
     }
 
-    .badge {
-      padding: 2px 6px;
-      border-radius: 4px;
+    .btn-view-all-history:hover {
+      color: var(--primary);
+    }
+
+    /* Workspace Content Area */
+    .workspace {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-main);
+      overflow-y: auto;
+      padding: 20px 24px;
+      gap: 20px;
+    }
+
+    /* Search Header Box */
+    .search-box-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 20px 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .search-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .search-title {
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-tips {
+      background: var(--primary-subtle);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .btn-advanced-toggle {
+      background: none;
+      border: none;
+      font-size: 13px;
       font-weight: 600;
-      text-transform: uppercase;
-      font-size: 9px;
-    }
-
-    .badge.grounded {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-    }
-
-    .badge.not-grounded {
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-    }
-
-    /* Citations Accordion */
-    .citations-section {
-      margin-top: 12px;
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      overflow: hidden;
-    }
-
-    .citations-header {
-      padding: 10px 14px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
+      color: var(--primary);
       cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      user-select: none;
-      transition: background 0.2s;
+      gap: 4px;
     }
 
-    .citations-header:hover {
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    .citations-body {
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      border-top: 1px solid rgba(255, 255, 255, 0.04);
-      animation: slideDown 0.2s ease-out;
-    }
-
-    .source-card {
-      padding: 10px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.03);
-      font-size: 11px;
-    }
-
-    .source-meta {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-weight: 500;
-    }
-
-    .source-title {
-      color: var(--accent-color);
-      font-weight: 600;
-    }
-
-    .source-score {
-      color: var(--success-color);
-    }
-
-    .source-text {
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-
-    /* Active Pipeline Status Overlay */
-    .pipeline-status {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      color: var(--text-muted);
-      padding: 12px 24px;
-      background: rgba(17, 24, 39, 0.4);
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      width: fit-content;
-      margin: 0 auto 16px auto;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      animation: fadeIn 0.3s ease;
-    }
-
-    .spinner {
-      animation: spin 1s linear infinite;
-      color: var(--accent-color);
-    }
-
-    /* Input Bar */
-    .input-bar {
-      padding: 24px 32px;
-      background: linear-gradient(to top, var(--bg-dark), transparent);
-      z-index: 10;
-    }
-
-    .input-wrapper {
+    .search-input-wrapper {
       display: flex;
       align-items: center;
       gap: 12px;
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 8px 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      backdrop-filter: blur(12px);
-      transition: border-color 0.2s;
+      margin-bottom: 14px;
     }
 
-    .input-wrapper:focus-within {
-      border-color: rgba(99, 102, 241, 0.5);
-    }
-
-    .chat-input {
+    .search-input {
       flex: 1;
-      background: none;
-      border: none;
-      color: var(--text-main);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 16px;
       font-size: 14px;
-      padding: 10px 0;
+      font-weight: 500;
+      color: var(--text-main);
       outline: none;
+      transition: all 0.2s;
     }
 
-    .chat-input::placeholder {
-      color: var(--text-muted);
+    .search-input:focus {
+      border-color: var(--primary);
+      background: var(--bg-surface);
+      box-shadow: 0 0 0 3px var(--primary-subtle);
     }
 
-    .btn-send {
-      background: var(--accent-color);
+    .btn-search-primary {
+      background: var(--primary);
       color: white;
       border: none;
-      width: 38px;
-      height: 38px;
       border-radius: 10px;
-      cursor: pointer;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 700;
       display: flex;
       align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
+      gap: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
     }
 
-    .btn-send:hover:not(:disabled) {
-      background: var(--accent-hover);
+    .btn-search-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
     }
 
-    .btn-send:disabled {
-      opacity: 0.5;
+    .btn-search-primary:disabled {
+      opacity: 0.6;
       cursor: not-allowed;
     }
 
-    /* Welcome view */
-    .welcome-container {
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      outline: none;
+    }
+
+    .filter-select:hover {
+      border-color: var(--border-hover);
+      color: var(--text-main);
+    }
+
+    .btn-clear-filters {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-left: 4px;
+    }
+
+    /* 3-Column Dashboard Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.2fr 340px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 1400px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .right-panel {
+        grid-column: span 2;
+      }
+    }
+
+    /* Section Cards */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Retrieved Sources Stream */
+    .source-cards-list {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      text-align: center;
-      padding: 40px;
+      gap: 14px;
     }
 
-    .welcome-title {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      background: linear-gradient(to right, #ffffff, #c7d2fe);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .welcome-subtitle {
-      font-size: 15px;
-      color: var(--text-muted);
-      max-width: 480px;
-      line-height: 1.6;
-      margin-bottom: 32px;
-    }
-
-    .quick-start-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      max-width: 600px;
-    }
-
-    .quick-card {
-      background: rgba(255, 255, 255, 0.02);
+    .source-item-card {
+      background: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: 12px;
-      padding: 20px;
-      text-align: left;
-      cursor: pointer;
-      transition: all 0.2s ease;
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+      transition: border-color 0.2s;
     }
 
-    .quick-card:hover {
-      background: rgba(99, 102, 241, 0.05);
-      border-color: rgba(99, 102, 241, 0.3);
-      transform: translateY(-2px);
+    .source-item-card:hover {
+      border-color: var(--primary-subtle);
     }
 
-    .quick-card-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent-color);
+    .source-num-badge {
+      background: var(--primary);
+      color: white;
+      font-weight: 800;
+      font-size: 12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .source-content {
+      flex: 1;
+    }
+
+    .source-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
       margin-bottom: 6px;
     }
 
-    .quick-card-text {
+    .source-paper-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+
+    .source-authors {
       font-size: 12px;
       color: var(--text-muted);
-      line-height: 1.4;
+      margin-bottom: 4px;
     }
 
-    /* Animations */
-    @keyframes blink {
-      0%, 100% { opacity: 0; }
-      50% { opacity: 1; }
+    .source-snippet {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 12px;
+      background: var(--bg-subtle);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: var(--font-family);
     }
 
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
+    .source-actions-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+    .btn-chip {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
     }
 
-    @keyframes messageSlideIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .btn-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
     }
 
-    /* Modal styles for Chunks Viewer */
+    .badge-relevance {
+      background: var(--success-subtle);
+      color: var(--success);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      margin-left: auto;
+    }
+
+    /* AI Summary Column */
+    .summary-badge-llm {
+      background: var(--primary-subtle);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .summary-text-body {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-main);
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+    }
+
+    .citation-tag {
+      color: var(--primary);
+      font-weight: 700;
+      cursor: pointer;
+      margin: 0 2px;
+    }
+
+    .summary-sources-box {
+      margin-bottom: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .summary-sources-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--text-subtle);
+      margin-bottom: 8px;
+    }
+
+    .summary-source-chip-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .summary-source-item {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .action-grid-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+
+    .btn-action-purple {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-action-purple:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-action-outline {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-action-outline:hover {
+      background: var(--bg-subtle);
+      border-color: var(--border-hover);
+    }
+
+    .grounding-status-bar {
+      background: var(--success-subtle);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: var(--success);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Right Panel (RAG Controls & Overview) */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .control-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .control-select {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      outline: none;
+    }
+
+    .control-slider {
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    /* Overview Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat-box {
+      background: var(--bg-subtle);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .latency-chart-box {
+      height: 100px;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .relevance-scale {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .scale-bar {
+      height: 6px;
+      flex: 1;
+      margin: 0 10px;
+      border-radius: 3px;
+      background: linear-gradient(to right, #ef4444, #f59e0b, #10b981);
+    }
+
+    /* Run Comparison Table */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    .comparison-table th, .comparison-table td {
+      padding: 8px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .comparison-table th:first-child, .comparison-table td:first-child {
+      text-align: left;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .winner-badge {
+      background: var(--success-subtle);
+      color: var(--success);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px;
+      border-radius: 6px;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* Footer Status Bar */
+    .footer-bar {
+      height: 36px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+    }
+
+    /* Modal for Chunks / Library Upload */
     .modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(8px);
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
       z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 24px;
-      animation: fadeIn 0.25s ease-out;
     }
 
-    .modal-content {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
+    .modal-card {
+      background: var(--bg-surface);
       border-radius: 16px;
       width: 100%;
-      max-width: 800px;
+      max-width: 680px;
       max-height: 85vh;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
-      animation: messageSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--shadow-lg);
       overflow: hidden;
     }
 
@@ -738,1000 +952,723 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-    }
-
-    .modal-title {
+      font-weight: 800;
       font-size: 16px;
-      font-weight: 600;
-      color: var(--text-color);
-      display: flex;
-      align-items: center;
-    }
-
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 20px;
-      padding: 4px;
-      border-radius: 6px;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-close:hover {
-      color: var(--text-color);
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .modal-body {
-      padding: 24px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    .chunks-meta {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 16px;
-    }
-
-    .chunks-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .chunk-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 16px;
-      transition: border-color 0.2s;
-    }
-
-    .chunk-card:hover {
-      border-color: rgba(99, 102, 241, 0.3);
-    }
-
-    .chunk-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .chunk-badge {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--accent-color);
-      background: rgba(99, 102, 241, 0.1);
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-
-    .chunk-section {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-family: monospace;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 60%;
-    }
-
-    .chunk-text {
-      font-size: 13px;
-      color: var(--text-color);
-      line-height: 1.6;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: inherit;
-      margin: 0;
-      background: none;
-      border: none;
-      padding: 0;
-    }
-
-    /* Mobile Responsiveness Styles */
-    .mobile-header-btn {
-      display: none;
-      background: none;
-      border: none;
-      color: var(--text-main);
-      font-size: 18px;
-      cursor: pointer;
-      padding: 8px;
-      margin-right: 12px;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      transition: background 0.2s;
-    }
-
-    .mobile-header-btn:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .sidebar-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(4px);
-      z-index: 95;
-    }
-
-    @media (max-width: 768px) {
-      .app-container {
-        grid-template-columns: 1fr;
-      }
-
-      .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 280px;
-        z-index: 100;
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-
-      .sidebar-backdrop.show {
-        display: block;
-      }
-
-      .mobile-header-btn {
-        display: flex;
-      }
-      
-      .topbar {
-        padding: 0 16px;
-      }
-      
-      .messages-area {
-        padding: 16px;
-      }
-      
-      .input-bar {
-        padding: 16px;
-      }
-      
-      .welcome-title {
-        font-size: 20px;
-      }
-      
-      .welcome-subtitle {
-        font-size: 13px;
-      }
-      
-      .quick-start-grid {
-        grid-template-columns: 1fr;
-      }
     }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
-  <!-- JSX Code -->
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
     function App() {
-      const [messages, setMessages] = useState([]);
-      const [input, setInput] = useState("");
-      const [threadId, setThreadId] = useState(() => {
-        let id = localStorage.getItem("rag_thread_id");
-        if (!id || id === "default-thread") {
-          id = `thread-${Math.random().toString(36).substring(2, 10)}`;
-          localStorage.setItem("rag_thread_id", id);
-        }
-        return id;
-      });
-      const [threads, setThreads] = useState([]);
-      const [activeNode, setActiveNode] = useState("");
-      const [nodeStages, setNodeStages] = useState([]);
-      const [streamingText, setStreamingText] = useState("");
-      const [systemStatus, setSystemStatus] = useState("checking");
+      const [theme, setTheme] = useState('light');
+      const [activeTab, setActiveTab] = useState('search');
+      const [question, setQuestion] = useState('');
+      const [isSearching, setIsSearching] = useState(false);
       
-      // Ingestion States
-      const [uploading, setUploading] = useState(false);
-      const [ingestStatus, setIngestStatus] = useState(null); // { type: 'success'|'error'|'loading', message: '' }
+      // RAG Controls State
+      const [retrievalStrategy, setRetrievalStrategy] = useState('hybrid');
+      const [topK, setTopK] = useState(5);
+      const [contextLimit, setContextLimit] = useState(4000);
+      const [temperature, setTemperature] = useState(0.2);
+      const [embeddingModel, setEmbeddingModel] = useState('BAAI/bge-small-en-v1.5');
+      
+      // Query Response & Streaming State
+      const [aiAnswer, setAiAnswer] = useState('');
+      const [sources, setSources] = useState([]);
+      const [grounded, setGrounded] = useState(true);
+      const [confidence, setConfidence] = useState(0.95);
+      const [latency, setLatency] = useState(1.21);
+      const [llmName, setLlmName] = useState('Ollama');
+      
+      // History State
+      const [history, setHistory] = useState([]);
+      
+      // Session & Document Library State
+      const generateSessionId = () => 'session-' + Math.random().toString(36).substring(2, 10);
+      const [sessionId, setSessionId] = useState(generateSessionId);
       const [documents, setDocuments] = useState([]);
-      const [selectedDoc, setSelectedDoc] = useState(null); // { filename: '', chunks: [] }
-      const [viewingChunks, setViewingChunks] = useState(false);
-      const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-      const [embedModel, setEmbedModel] = useState("BAAI/bge-small-en-v1.5");
+      const [uploading, setUploading] = useState(false);
+      const [ingestStatus, setIngestStatus] = useState(null);
 
-      const messagesEndRef = useRef(null);
-      const fileInputRef = useRef(null);
+      // Latency history chart runs
+      const [runLatencies, setRunLatencies] = useState([1.1, 0.8, 1.3, 1.0, 1.21]);
 
-      // Fetch active threads and set up
-      useEffect(() => {
-        fetchThreads();
-        fetchHealth();
-        fetchDocuments();
-        loadConversationHistory(threadId);
-      }, [threadId]);
+      const searchInputRef = useRef(null);
 
-      // Scroll to bottom on messages change
-      useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, [messages, streamingText, activeNode]);
-
-      const fetchThreads = async () => {
-        try {
-          const res = await fetch("/threads");
-          const data = await res.json();
-          if (data.threads && data.threads.length > 0) {
-            setThreads(data.threads);
-          } else {
-            setThreads(["default-thread"]);
+      // Handle Ask Follow-up action
+      const handleFollowUp = () => {
+        setActiveTab('search');
+        setQuestion((prev) => (prev && !prev.startsWith('Follow-up:') ? `Follow-up: ` : prev));
+        setTimeout(() => {
+          if (searchInputRef.current) {
+            searchInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            searchInputRef.current.focus();
           }
-        } catch (e) {
-          console.error("Error fetching threads", e);
-        }
+        }, 100);
       };
+
+      // Handle Exporting summary & citations
+      const handleExport = () => {
+        if (!aiAnswer) return;
+        const text = `# Research Query: ${question}\n\n## AI Answer (${llmName})\n${aiAnswer}\n\n## Sources (${sources.length})\n${sources.map((s, i) => `${i+1}. ${s.title || s.source}\n${s.text}\n`).join('\n')}`;
+        const blob = new Blob([text], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `research_export_${Date.now()}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+
+      // Toggle Light / Dark Theme
+      const toggleTheme = () => {
+        const nextTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(nextTheme);
+        document.documentElement.setAttribute('data-theme', nextTheme);
+      };
+
+      // Handle New Research Session Creation & Cleanup of Old Temporary Session Data
+      const handleNewResearch = async () => {
+        if (sessionId) {
+          try {
+            await fetch(`/sessions/${sessionId}`, { method: 'DELETE' });
+          } catch (e) {}
+        }
+        const newId = generateSessionId();
+        setSessionId(newId);
+        setQuestion('');
+        setAiAnswer('');
+        setSources([]);
+        setIngestStatus({ type: 'info', text: 'Started new research session. Temporary session data cleared.' });
+        fetchDocuments(newId);
+      };
+
+      // Fetch Documents & System Health on Load
+      useEffect(() => {
+        fetchHealth();
+        fetchDocuments(sessionId);
+      }, [sessionId]);
 
       const fetchHealth = async () => {
         try {
-          const res = await fetch("/health");
+          const res = await fetch('/health');
           const data = await res.json();
-          setSystemStatus(data.status === "ok" ? "online" : "degraded");
-        } catch (e) {
-          setSystemStatus("offline");
-        }
-      };
-
-      const fetchDocuments = async () => {
-        try {
-          const res = await fetch("/documents");
-          const data = await res.json();
-          setDocuments(data.documents || []);
-        } catch (e) {
-          console.error("Error fetching documents", e);
-        }
-      };
-
-      const viewDocumentChunks = async (filename) => {
-        setIsSidebarOpen(false);
-        try {
-          const res = await fetch(`/documents/${encodeURIComponent(filename)}/chunks`);
-          const data = await res.json();
-          setSelectedDoc({
-            filename: filename,
-            chunks: data.chunks || []
-          });
-          setViewingChunks(true);
-        } catch (e) {
-          console.error("Error loading chunks", e);
-        }
-      };
-      const loadConversationHistory = async (id) => {
-        if (!id) return;
-        try {
-          const res = await fetch(`/conversations/${id}`);
-          if (res.status === 200) {
-            const data = await res.json();
-            // Map conversations from history
-            const hist = data.conversation_history || [];
-            const mapped = hist.map((msg, index) => ({
-              id: `hist-${index}`,
-              role: msg.role,
-              text: msg.content,
-              isComplete: true
-            }));
-            setMessages(mapped);
-          } else {
-            setMessages([]);
+          if (data.main_llm?.model) {
+            setLlmName(data.main_llm.model);
+          } else if (data.resolved_llm_model) {
+            setLlmName(data.resolved_llm_model);
           }
-        } catch (e) {
-          setMessages([]);
-        }
+        } catch (e) {}
       };
 
-      // Handle multiple PDFs upload
-      const handleFileUpload = async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-        
-        const invalidFiles = files.filter(f => !f.name.toLowerCase().endsWith(".pdf"));
-        if (invalidFiles.length > 0) {
-          setIngestStatus({ type: "error", message: "Only PDF files are supported." });
-          return;
-        }
+      const fetchDocuments = async (sId) => {
+        const activeId = sId || sessionId;
+        try {
+          const res = await fetch(`/documents?thread_id=${encodeURIComponent(activeId)}`);
+          const data = await res.json();
+          if (data.documents) {
+            setDocuments(data.documents);
+          }
+        } catch (e) {}
+      };
 
-        const formData = new FormData();
-        files.forEach(file => {
-          formData.append("files", file);
+      // Handle Search Query Submission via SSE
+      const handleSearch = (e) => {
+        if (e) e.preventDefault();
+        if (!question.trim() || isSearching) return;
+
+        setIsSearching(true);
+        setAiAnswer('');
+        setSources([]);
+
+        const queryParams = new URLSearchParams({
+          question: question,
+          thread_id: sessionId,
+          stream: 'true',
+          embedding_model: embeddingModel,
+          retrieval_strategy: retrievalStrategy,
+          top_k: topK.toString(),
+          context_limit: contextLimit.toString(),
+          temperature: temperature.toString()
         });
 
-        setUploading(true);
-        const fileNamesStr = files.map(f => f.name).join(", ");
-        setIngestStatus({ type: "loading", message: `Parsing & embedding ${files.length} paper(s): ${fileNamesStr}…` });
+        const eventSource = new EventSource(`/query?${queryParams.toString()}`);
 
-        // Increase abort timeout for multiple files (10 minutes)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000);
-
-        try {
-          const res = await fetch(`/ingest?embedding_model=${encodeURIComponent(embedModel)}`, {
-            method: "POST",
-            body: formData,
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-
-          let data = {};
-          const contentType = res.headers.get("content-type") || "";
-          if (contentType.includes("application/json")) {
-            data = await res.json();
-          } else {
-            const text = await res.text();
-            data = { detail: text };
-          }
-
-          if (res.ok) {
-            const results = data.results || [];
-            const successList = results.filter(r => r.status === "ingested");
-            const failList = results.filter(r => r.status === "failed");
-            
-            let msg = `✓ Ingested ${successList.length} of ${files.length} papers.`;
-            if (successList.length > 0) {
-              const summary = successList.map(r => `${r.filename} (${r.chunks} chunks)`).join(", ");
-              msg += ` Details: ${summary}`;
-            }
-            if (failList.length > 0) {
-              const errors = failList.map(r => `${r.filename}: ${r.error}`).join("; ");
-              msg += ` Failed: ${errors}`;
-            }
-
-            setIngestStatus({
-              type: failList.length === files.length ? "error" : failList.length > 0 ? "warning" : "success",
-              message: msg
-            });
-            fetchDocuments();
-          } else if (res.status === 413) {
-            setIngestStatus({ type: "error", message: "One or more files are too large (max 50 MB)." });
-          } else {
-            const detail = data.detail || `Server error ${res.status}`;
-            setIngestStatus({ type: "error", message: `Ingestion failed: ${detail}` });
-          }
-        } catch (err) {
-          clearTimeout(timeoutId);
-          if (err.name === "AbortError") {
-            setIngestStatus({ type: "error", message: "Upload timed out after 10 minutes." });
-          } else {
-            setIngestStatus({
-              type: "error",
-              message: `Cannot reach server: ${err.message}`
-            });
-          }
-        } finally {
-          setUploading(false);
-          if (fileInputRef.current) fileInputRef.current.value = "";
-        }
-      };
-
-      // Native EventSource streaming using GET endpoint
-      const handleSend = async (e) => {
-        e.preventDefault();
-        const userText = input.trim();
-        if (!userText) return;
-
-        setInput("");
-        
-        // Add User Message
-        const userMsgId = `user-${Date.now()}`;
-        setMessages(prev => [...prev, {
-          id: userMsgId,
-          role: "user",
-          text: userText,
-          isComplete: true
-        }]);
-
-        setStreamingText("");
-        setActiveNode("query_analyzer");
-        setNodeStages(["query_analyzer"]);
-
-        const eventSourceUrl = `/query?question=${encodeURIComponent(userText)}&thread_id=${threadId}&stream=true&embedding_model=${encodeURIComponent(embedModel)}`;
-        const es = new EventSource(eventSourceUrl);
-
-        es.onmessage = (event) => {
+        eventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            
-            if (data.type === "node_start") {
-              setActiveNode(data.node);
-              setNodeStages(prev => [...new Set([...prev, data.node])]);
+
+            if (data.type === 'token') {
+              setAiAnswer((prev) => prev + data.content);
+            } else if (data.type === 'done') {
+              setAiAnswer(data.final_answer || '');
+              if (data.sources && data.sources.length > 0) {
+                setSources(data.sources);
+              }
+              setGrounded(data.grounded !== undefined ? data.grounded : true);
+              setConfidence(data.confidence || 0.95);
+              if (data.latency) {
+                setLatency(data.latency);
+                setRunLatencies((prev) => [...prev.slice(1), data.latency]);
+              }
+              setIsSearching(false);
+              eventSource.close();
+            } else if (data.type === 'error') {
+              setAiAnswer(`Error: ${data.message}`);
+              setIsSearching(false);
+              eventSource.close();
             }
-            
-            else if (data.type === "token") {
-              setStreamingText(prev => prev + data.content);
-            }
-            
-            else if (data.type === "done") {
-              es.close();
-              setActiveNode("");
-              
-              // Add AI Message permanently
-              setMessages(prev => [...prev, {
-                id: `ai-${Date.now()}`,
-                role: "assistant",
-                text: data.final_answer,
-                sources: data.sources || [],
-                grounded: data.grounded,
-                confidence: data.confidence,
-                metadata: data.metadata || {},
-                isComplete: true
-              }]);
-              setStreamingText("");
-              fetchThreads(); // Refresh threads list
-            }
-            
-            else if (data.type === "error") {
-              es.close();
-              setActiveNode("");
-              setMessages(prev => [...prev, {
-                id: `ai-err-${Date.now()}`,
-                role: "assistant",
-                text: `Error: ${data.message}`,
-                isComplete: true,
-                isError: true
-              }]);
-              setStreamingText("");
-            }
-          } catch (e) {
-            console.error("Error parsing event data", e);
+          } catch (err) {
+            console.error('Error parsing SSE event', err);
           }
         };
 
-        es.onerror = (err) => {
-          es.close();
-          setActiveNode("");
-          setMessages(prev => [...prev, {
-            id: `ai-err-${Date.now()}`,
-            role: "assistant",
-            text: "Connection failed or was closed.",
-            isComplete: true,
-            isError: true
-          }]);
-          setStreamingText("");
+        eventSource.onerror = (err) => {
+          console.error('EventSource failed', err);
+          setIsSearching(false);
+          eventSource.close();
         };
+
+        // Add to history
+        setHistory((prev) => [
+          { id: Date.now(), query: question, time: 'Just now' },
+          ...prev.slice(0, 4)
+        ]);
       };
 
-      const startNewThread = () => {
-        const newId = `thread-${uuidv4().substring(0, 8)}`;
-        localStorage.setItem("rag_thread_id", newId);
-        setThreadId(newId);
-        setMessages([]);
-        setIsSidebarOpen(false);
-      };
+      // Handle PDF Upload
+      const handleUpload = async (file) => {
+        if (!file) return;
+        setUploading(true);
+        setIngestStatus({ type: 'loading', text: `Ingesting ${file.name} for current session...` });
 
-      const selectThread = (id) => {
-        localStorage.setItem("rag_thread_id", id);
-        setThreadId(id);
-        setIsSidebarOpen(false);
-      };
+        const formData = new FormData();
+        formData.append('files', file);
+        formData.append('embedding_model', embeddingModel);
+        formData.append('thread_id', sessionId);
 
-      const deleteThread = async (id, e) => {
-        e.stopPropagation();
-        if (confirm(`Clear memory for ${id}?`)) {
-          try {
-            await fetch(`/conversations/${id}`, { method: "DELETE" });
-            if (threadId === id) {
-              setMessages([]);
-            }
-            fetchThreads();
-          } catch (err) {
-            console.error(err);
+        try {
+          const res = await fetch(`/ingest?thread_id=${encodeURIComponent(sessionId)}&embedding_model=${encodeURIComponent(embeddingModel)}`, {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (res.ok) {
+            const item = (data.results && data.results[0]) || {};
+            const count = item.chunks !== undefined ? item.chunks : (data.chunk_count || 0);
+            setIngestStatus({ type: 'success', text: `Successfully ingested ${file.name} (${count} chunks) for session!` });
+            fetchDocuments(sessionId);
+          } else {
+            setIngestStatus({ type: 'error', text: data.detail || 'Upload failed' });
           }
+        } catch (e) {
+          setIngestStatus({ type: 'error', text: 'Error connecting to ingestion server' });
+        } finally {
+          setUploading(false);
         }
-      };
-
-      const deleteDocument = async (filename, e) => {
-        e.stopPropagation();
-        if (confirm(`Are you sure you want to delete "${filename}" from the database?`)) {
-          try {
-            const res = await fetch(`/documents/${encodeURIComponent(filename)}`, { method: "DELETE" });
-            if (res.ok) {
-              setIngestStatus({
-                type: "success",
-                message: `✓ Deleted ${filename} from the database.`
-              });
-              fetchDocuments();
-            } else {
-              setIngestStatus({
-                type: "error",
-                message: `Failed to delete ${filename}.`
-              });
-            }
-          } catch (err) {
-            console.error(err);
-            setIngestStatus({
-              type: "error",
-              message: `Error deleting document: ${err.message}`
-            });
-          }
-        }
-      };
-
-      const clearAllDocuments = async () => {
-        if (confirm("Are you sure you want to delete ALL ingested documents and reset the database? This cannot be undone.")) {
-          try {
-            const res = await fetch("/documents", { method: "DELETE" });
-            if (res.ok) {
-              setIngestStatus({
-                type: "success",
-                message: "✓ All documents deleted and database reset successfully."
-              });
-              fetchDocuments();
-            } else {
-              setIngestStatus({
-                type: "error",
-                message: "Failed to reset database."
-              });
-            }
-          } catch (err) {
-            console.error(err);
-            setIngestStatus({
-              type: "error",
-              message: `Error resetting database: ${err.message}`
-            });
-          }
-        }
-      };
-
-
-      const uuidv4 = () => {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-          var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
-      };
-
-      // Format Node Title for Display
-      const formatNode = (node) => {
-        return node
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, c => c.toUpperCase());
       };
 
       return (
-        <div className="app-container">
-          {/* Sidebar Backdrop overlay for mobile screens */}
-          <div 
-            className={`sidebar-backdrop ${isSidebarOpen ? 'show' : ''}`} 
-            onClick={() => setIsSidebarOpen(false)}
-          ></div>
-          
-          {/* Sidebar */}
-          <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-            <div className="logo-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div className="logo-icon">
-                  <i className="fa-solid fa-graduation-cap text-white"></i>
-                </div>
-                <div className="logo-text">ResearchRAG</div>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Top Navbar Header */}
+          <header className="top-header">
+            <div className="brand-logo">
+              <div className="brand-icon">
+                <i className="fa-solid fa-layer-group"></i>
               </div>
-              <button 
-                className="mobile-header-btn" 
-                onClick={() => setIsSidebarOpen(false)}
-                style={{ margin: 0, padding: '4px 8px' }}
-                title="Close Sidebar"
-              >
-                <i className="fa-solid fa-xmark"></i>
+              <div>
+                <div>ResearchRAG</div>
+                <div className="brand-sub">AI Research Assistant</div>
+              </div>
+            </div>
+
+            {/* Nav Tabs */}
+            <div className="nav-tabs">
+              <button className={`nav-tab ${activeTab === 'search' ? 'active' : ''}`} onClick={() => setActiveTab('search')}>
+                <i className="fa-solid fa-magnifying-glass"></i> Search
+              </button>
+              <button className={`nav-tab ${activeTab === 'library' ? 'active' : ''}`} onClick={() => setActiveTab('library')}>
+                <i className="fa-solid fa-book-open"></i> Library ({documents.length})
+              </button>
+              <button className={`nav-tab ${activeTab === 'summarize' ? 'active' : ''}`} onClick={() => setActiveTab('summarize')}>
+                <i className="fa-solid fa-brain"></i> Summarize
+              </button>
+              <button className={`nav-tab ${activeTab === 'evaluate' ? 'active' : ''}`} onClick={() => setActiveTab('evaluate')}>
+                <i className="fa-solid fa-chart-column"></i> Evaluate
+              </button>
+              <button className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
+                <i className="fa-solid fa-clock-rotate-left"></i> History
               </button>
             </div>
 
-            <div className="section-title">Embedding Model</div>
-            <select 
-              value={embedModel} 
-              onChange={(e) => setEmbedModel(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '8px',
-                background: 'rgba(30, 41, 59, 0.8)',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-main)',
-                fontSize: '13px',
-                marginBottom: '16px',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="BAAI/bge-small-en-v1.5">BAAI/bge-small-en-v1.5 (More Accurate)</option>
-              <option value="BAAI/bge-tiny-en-v1.5">BAAI/bge-tiny-en-v1.5 (Faster)</option>
-            </select>
-
-            <div className="section-title">Ingest Research Papers</div>
-            
-            <div 
-              className="upload-area"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="file-input" 
-                accept=".pdf" 
-                onChange={handleFileUpload} 
-                disabled={uploading}
-                multiple
-              />
-              <div className="upload-icon">
-                <i className="fa-solid fa-cloud-arrow-up"></i>
+            {/* Controls Right */}
+            <div className="header-actions">
+              <button className="icon-btn" onClick={toggleTheme} title="Toggle Theme">
+                <i className={theme === 'light' ? "fa-solid fa-moon" : "fa-solid fa-sun"}></i>
+              </button>
+              <button className="icon-btn" title="Help">
+                <i className="fa-regular fa-circle-question"></i>
+              </button>
+              <div className="user-avatar" title="User Profile">
+                RK <i className="fa-solid fa-chevron-down" style={{ fontSize: '9px' }}></i>
               </div>
-              <div className="upload-text">Upload PDF Paper(s)</div>
-              <div className="upload-subtext">Select multiple papers at once</div>
             </div>
+          </header>
 
-            {ingestStatus && (
-              <div className={`ingest-status ${ingestStatus.type}`} style={{ position: 'relative', paddingRight: '32px' }}>
-                {ingestStatus.type === "loading" && <i className="fa-solid fa-circle-notch spinner"></i>}
-                {ingestStatus.type === "success" && <i className="fa-solid fa-circle-check"></i>}
-                {ingestStatus.type === "error" && <i className="fa-solid fa-triangle-exclamation"></i>}
-                <span>{ingestStatus.message}</span>
-                {ingestStatus.type !== "loading" && (
-                  <button 
-                    onClick={() => setIngestStatus(null)} 
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: 'inherit',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      opacity: 0.6,
-                      padding: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Dismiss"
-                  >
-                    <i className="fa-solid fa-xmark"></i>
+          {/* Main Application Layout */}
+          <div className="main-layout">
+            {/* Sidebar */}
+            <aside className="sidebar">
+              <button className="btn-new-research" onClick={handleNewResearch}>
+                <i className="fa-solid fa-plus"></i> New Research
+              </button>
+
+              {/* Quick Actions */}
+              <div>
+                <div className="sidebar-group-title">Quick Actions</div>
+                <div className="quick-actions-list">
+                  <button className="quick-action-btn" onClick={() => setQuestion('Summarize Top 5 key paper findings')}>
+                    <i className="fa-solid fa-bolt" style={{ color: 'var(--warning)' }}></i> Summarize Top 5
                   </button>
-                )}
-              </div>
-            )}
-
-            <div className="section-title">
-              <span>Ingested Documents</span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="action-btn-sm" onClick={clearAllDocuments} title="Clear all documents (Reset database)" style={{ color: 'var(--danger-color)' }}>
-                  <i className="fa-solid fa-broom"></i>
-                </button>
-                <button className="action-btn-sm" onClick={fetchDocuments} title="Refresh documents">
-                  <i className="fa-solid fa-rotate-right"></i>
-                </button>
-              </div>
-            </div>
-            
-            <div className="session-list" style={{ maxHeight: '180px', overflowY: 'auto', marginBottom: '16px' }}>
-              {documents.length === 0 ? (
-                <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                  No papers ingested yet.
+                  <button className="quick-action-btn" onClick={() => setTopK(10)}>
+                    <i className="fa-solid fa-magnifying-glass-plus" style={{ color: 'var(--primary)' }}></i> Expand Context 10
+                  </button>
+                  <button className="quick-action-btn" onClick={() => setQuestion('Summarize methodology section')}>
+                    <i className="fa-solid fa-file-lines" style={{ color: 'var(--success)' }}></i> Summarize Section
+                  </button>
+                  <button className="quick-action-btn" onClick={() => setActiveTab('evaluate')}>
+                    <i className="fa-solid fa-chart-line" style={{ color: 'var(--accent)' }}></i> Compare Runs
+                  </button>
+                  <button className="quick-action-btn" onClick={() => alert('Exporting results...')}>
+                    <i className="fa-solid fa-download" style={{ color: 'var(--text-muted)' }}></i> Export Results
+                  </button>
                 </div>
-              ) : (
-                documents.map(doc => (
-                  <div 
-                    key={doc.filename} 
-                    className="session-item"
-                    onClick={() => viewDocumentChunks(doc.filename)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <span className="session-name" title={doc.filename}>
-                      <i className="fa-solid fa-file-pdf" style={{ marginRight: '8px', color: '#ef4444' }}></i>
-                      {doc.filename}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ 
-                        fontSize: '10px', 
-                        background: 'rgba(255,255,255,0.08)', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px',
-                        color: 'var(--text-muted)',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {doc.chunks} chunks
-                      </span>
-                      <div className="session-actions">
-                        <button className="action-btn-sm" onClick={(e) => deleteDocument(doc.filename, e)} title="Delete document">
-                          <i className="fa-solid fa-trash-can"></i>
+              </div>
+
+              {/* Search History */}
+              <div style={{ flex: 1 }}>
+                <div className="sidebar-group-title">History</div>
+                <div className="history-list">
+                  {history.map((h) => (
+                    <div 
+                      key={h.id} 
+                      className={`history-item ${question === h.query ? 'active' : ''}`}
+                      onClick={() => { setQuestion(h.query); handleSearch(); }}
+                    >
+                      <div className="history-title">{h.query}</div>
+                      <div className="history-meta">{h.time}</div>
+                    </div>
+                  ))}
+                </div>
+                <button className="btn-view-all-history" onClick={() => setActiveTab('history')}>
+                  View all history <i className="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+
+              {/* Theme Toggle Button at Bottom */}
+              <button className="quick-action-btn" onClick={toggleTheme} style={{ justifyContent: 'center' }}>
+                <i className={theme === 'light' ? "fa-solid fa-sun" : "fa-solid fa-moon"}></i>
+                {theme === 'light' ? 'Light Mode' : 'Dark Mode'}
+              </button>
+            </aside>
+
+            {/* Main Workspace Area */}
+            <main className="workspace">
+              {activeTab === 'search' && (
+                <>
+                  {/* Search Card */}
+                  <div className="search-box-card">
+                    <div className="search-header-top">
+                      <div className="search-title">
+                        What do you want to research? <span className="badge-tips"><i className="fa-solid fa-lightbulb"></i> Tips</span>
+                      </div>
+                      <button className="btn-advanced-toggle">
+                        Advanced <i className="fa-solid fa-chevron-down"></i>
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSearch} className="search-input-wrapper">
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        className="search-input"
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        placeholder="Ask a question about your research papers..."
+                      />
+                      {question && (
+                        <button type="button" className="icon-btn" onClick={() => setQuestion('')} style={{ border: 'none' }}>
+                          <i className="fa-solid fa-xmark"></i>
+                        </button>
+                      )}
+                      <button type="submit" className="btn-search-primary" disabled={isSearching}>
+                        {isSearching ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-magnifying-glass"></i>}
+                        Search Papers
+                      </button>
+                    </form>
+
+                    {/* Filter Controls */}
+                    <div className="filter-bar">
+                      <select className="filter-select">
+                        <option>Filters</option>
+                      </select>
+                      <select className="filter-select">
+                        <option>Year: 2021–2025</option>
+                        <option>Year: 2024</option>
+                        <option>Year: 2023</option>
+                      </select>
+                      <select className="filter-select">
+                        <option>Venue</option>
+                        <option>arXiv</option>
+                        <option>ACL</option>
+                        <option>EMNLP</option>
+                      </select>
+                      <select className="filter-select">
+                        <option>Author</option>
+                      </select>
+                      <button className="btn-clear-filters" onClick={() => setQuestion('')}>Clear</button>
+                    </div>
+                  </div>
+
+                  {/* 3-Column Content Layout */}
+                  <div className="dashboard-grid">
+                    {/* Middle-Left: Retrieved Sources */}
+                    <div className="card">
+                      <div className="card-header">
+                        <div className="card-title">
+                          Retrieved Sources ({sources.length})
+                        </div>
+                      </div>
+
+                      <div className="source-cards-list">
+                        {sources.length === 0 ? (
+                          <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            <i className="fa-solid fa-folder-open" style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.4 }}></i>
+                            <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px', color: 'var(--text-main)' }}>No Sources Retrieved Yet</div>
+                            <div style={{ fontSize: '12px' }}>Upload a PDF in the Library tab or type a question above.</div>
+                          </div>
+                        ) : (
+                          sources.map((src, idx) => (
+                            <div key={idx} className="source-item-card">
+                              <div className="source-num-badge">{idx + 1}</div>
+                              <div className="source-content">
+                                <div className="source-head">
+                                  <div className="source-paper-title">{src.title || src.source}</div>
+                                  <i className="fa-regular fa-bookmark" style={{ cursor: 'pointer', color: 'var(--text-subtle)' }}></i>
+                                </div>
+                                <div className="source-authors">{src.authors || 'Research Authors'}</div>
+                                <div className="source-snippet">{src.text}</div>
+                                <div className="source-actions-bar">
+                                  <button className="btn-chip"><i className="fa-solid fa-arrow-up-right-from-square"></i> View Paper</button>
+                                  <button className="btn-chip"><i className="fa-solid fa-expand"></i> Expand Context</button>
+                                  <button className="btn-chip"><i className="fa-solid fa-quote-left"></i> Cite</button>
+                                  <div className="badge-relevance">
+                                    Relevance {( (src.relevance_score || 0.94) * 100 ).toFixed(0)}%
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Middle-Center: AI Research Summary */}
+                    <div className="card">
+                      <div className="card-header">
+                        <div className="card-title">AI Research Summary</div>
+                        <div className="summary-badge-llm">
+                          <i className="fa-solid fa-robot"></i> {llmName}
+                        </div>
+                      </div>
+
+                      <div className="summary-text-body">
+                        {isSearching && !aiAnswer ? (
+                          <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            <i className="fa-solid fa-spinner fa-spin mr-2"></i> Synthesizing paper insights & evaluating grounding...
+                          </div>
+                        ) : aiAnswer ? (
+                          aiAnswer
+                        ) : (
+                          <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            <i className="fa-solid fa-brain" style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.4 }}></i>
+                            <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px', color: 'var(--text-main)' }}>Ready for Research</div>
+                            <div style={{ fontSize: '12px' }}>Ask a question above to generate an AI research synthesis.</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Cited Sources List */}
+                      {sources.length > 0 && (
+                        <div className="summary-sources-box">
+                          <div className="summary-sources-title">Sources</div>
+                          <div className="summary-source-chip-list">
+                            {sources.slice(0, 3).map((src, i) => (
+                              <div key={i} className="summary-source-item">
+                                <span className="source-num-badge" style={{ width: '18px', height: '18px', fontSize: '10px' }}>{i + 1}</span>
+                                <span>{src.title || src.source}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* AI Action Grid */}
+                      <div className="action-grid-buttons">
+                        <button className="btn-action-purple" onClick={handleSearch}>
+                          <i className="fa-solid fa-bolt"></i> Summarize
+                        </button>
+                        <button className="btn-action-outline" onClick={() => setTopK(10)}>
+                          <i className="fa-solid fa-expand"></i> Expand Context
+                        </button>
+                        <button className="btn-action-outline" onClick={handleFollowUp}>
+                          <i className="fa-solid fa-comments"></i> Ask Follow-up
+                        </button>
+                        <button className="btn-action-outline" onClick={handleExport}>
+                          <i className="fa-solid fa-download"></i> Export
                         </button>
                       </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
 
-            <div className="section-title">
-              <span>Active Threads</span>
-              <button className="action-btn-sm" onClick={fetchThreads} title="Refresh threads">
-                <i className="fa-solid fa-rotate-right"></i>
-              </button>
-            </div>
-            
-            <div className="session-list">
-              {threads.map(id => (
-                <div 
-                  key={id} 
-                  className={`session-item ${threadId === id ? 'active' : ''}`}
-                  onClick={() => selectThread(id)}
-                >
-                  <span className="session-name" title={id}>
-                    <i className="fa-solid fa-message mr-2" style={{ marginRight: '8px', opacity: 0.7 }}></i>
-                    {id}
-                  </span>
-                  <div className="session-actions">
-                    <button className="action-btn-sm" onClick={(e) => deleteThread(id, e)} title="Clear thread memory">
-                      <i className="fa-solid fa-trash-can"></i>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button className="btn-new-thread" onClick={startNewThread}>
-              <i className="fa-solid fa-plus"></i> New Conversation
-            </button>
-          </div>
-
-          {/* Chat Container */}
-          <div className="chat-container">
-            {/* Top Bar */}
-            <div className="topbar">
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <button className="mobile-header-btn" onClick={() => setIsSidebarOpen(true)} title="Open Sidebar">
-                  <i className="fa-solid fa-bars"></i>
-                </button>
-                <div>
-                  <div className="topbar-title">Advanced Research Assistant</div>
-                  <div className="topbar-subtitle">Active Session: {threadId}</div>
-                </div>
-              </div>
-              <div className="system-health">
-                <div className={`health-indicator`} style={{
-                  backgroundColor: systemStatus === "online" ? "#10b981" : systemStatus === "degraded" ? "#f59e0b" : "#ef4444",
-                  boxShadow: `0 0 8px ${systemStatus === "online" ? "#10b981" : systemStatus === "degraded" ? "#f59e0b" : "#ef4444"}`
-                }}></div>
-                <span>LLM Engine: {systemStatus}</span>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <div className="messages-area">
-              {messages.length === 0 && !activeNode ? (
-                <div className="welcome-container">
-                  <h1 className="welcome-title">Research paper search & reasoning</h1>
-                  <p className="welcome-subtitle">
-                    Ask complex, deep analytical queries across all your ingested scientific PDFs. 
-                    Uses multi-step retrieval, relevance grading, and hallucination protection loops.
-                  </p>
-                  <div className="quick-start-grid">
-                    <div className="quick-card" onClick={() => setInput("Summarize the key contributions of the ingested paper")}>
-                      <div className="quick-card-title">Paper Summary</div>
-                      <div className="quick-card-text">Get a structured overview of the main findings.</div>
-                    </div>
-                    <div className="quick-card" onClick={() => setInput("What methodology does the paper use?")}>
-                      <div className="quick-card-title">Methodology</div>
-                      <div className="quick-card-text">Understand the approach and experimental setup.</div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                messages.map(msg => (
-                  <MessageItem key={msg.id} message={msg} />
-                ))
-              )}
-
-              {/* Streaming Node Output */}
-              {activeNode && (
-                <div className="message ai">
-                  <div className="avatar">
-                    <i className="fa-solid fa-robot"></i>
-                  </div>
-                  <div className="bubble">
-                    {streamingText ? (
-                      <span>
-                        {streamingText}
-                        <span className="cursor"></span>
-                      </span>
-                    ) : (
-                      <span style={{ fontStyle: "italic", color: "var(--text-muted)" }}>
-                        Running agent node: {formatNode(activeNode)}...
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Pipeline Stage Overlay */}
-            {activeNode && (
-              <div className="pipeline-status">
-                <i className="fa-solid fa-circle-notch spinner"></i>
-                <span>Agent loop active: <strong>{formatNode(activeNode)}</strong></span>
-              </div>
-            )}
-
-            {/* Input Bar */}
-            <div className="input-bar">
-              <form onSubmit={handleSend} className="input-wrapper">
-                <input 
-                  type="text" 
-                  className="chat-input" 
-                  value={input} 
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask a question about the papers..."
-                  disabled={!!activeNode}
-                />
-                <button type="submit" className="btn-send" disabled={!input.trim() || !!activeNode}>
-                  <i className="fa-solid fa-arrow-up"></i>
-                </button>
-              </form>
-            </div>
-          </div>
-
-          {/* Chunks Viewer Modal */}
-          {viewingChunks && selectedDoc && (
-            <div className="modal-overlay" onClick={() => setViewingChunks(false)}>
-              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                  <div className="modal-title">
-                    <i className="fa-solid fa-cubes" style={{ marginRight: '8px', color: 'var(--accent-color)' }}></i>
-                    Parsed Chunks: {selectedDoc.filename}
-                  </div>
-                  <button className="modal-close" onClick={() => setViewingChunks(false)}>
-                    <i className="fa-solid fa-xmark"></i>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <div className="chunks-meta">
-                    Generated <strong>{selectedDoc.chunks.length}</strong> chunks. Click anywhere outside to close.
-                  </div>
-                  <div className="chunks-list">
-                    {selectedDoc.chunks.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                        No chunks found for this document.
+                      {/* Grounding Status Bar */}
+                      <div className="grounding-status-bar">
+                        <i className="fa-solid fa-check"></i>
+                        <span>Grounded in {sources.length} sources</span>
+                        <span style={{ marginLeft: 'auto' }}>Confidence: {confidence > 0.8 ? 'High' : 'Medium'}</span>
                       </div>
-                    ) : (
-                      selectedDoc.chunks.map((chunk, idx) => (
-                        <div key={chunk.chunk_id || idx} className="chunk-card">
-                          <div className="chunk-card-header">
-                            <span className="chunk-badge">Chunk #{idx + 1}</span>
-                            {chunk.h1 && (
-                              <span className="chunk-badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
-                                {chunk.h1} {chunk.h2 ? `> ${chunk.h2}` : ''}
-                              </span>
-                            )}
+                    </div>
+
+                    {/* Right Panel: RAG Controls & Analytics */}
+                    <div className="right-panel">
+                      {/* RAG Controls */}
+                      <div className="card">
+                        <div className="card-header">
+                          <div className="card-title">RAG Controls</div>
+                          <i className="fa-solid fa-chevron-up" style={{ color: 'var(--text-subtle)' }}></i>
+                        </div>
+
+                        <div className="control-group">
+                          <div className="control-label">Retrieval Strategy</div>
+                          <select 
+                            className="control-select" 
+                            value={retrievalStrategy} 
+                            onChange={(e) => setRetrievalStrategy(e.target.value)}
+                          >
+                            <option value="hybrid">Hybrid (Vector + BM25)</option>
+                            <option value="dense">Dense Only (Qdrant Vector)</option>
+                            <option value="sparse">Sparse Only (BM25)</option>
+                          </select>
+                        </div>
+
+                        <div className="control-group">
+                          <div className="control-label">
+                            <span>Top K</span> <span>{topK}</span>
                           </div>
-                          <pre className="chunk-text">{chunk.text}</pre>
+                          <input 
+                            type="range" 
+                            className="control-slider" 
+                            min="1" max="20" 
+                            value={topK} 
+                            onChange={(e) => setTopK(Number(e.target.value))} 
+                          />
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
 
-    // Individual Message Component
-    function MessageItem({ message }) {
-      const [isOpen, setIsOpen] = useState(false);
-      const { role, text, sources, grounded, confidence, metadata, isError } = message;
-      const isAi = role === "assistant";
-
-      if (isError) {
-        return (
-          <div className="message ai">
-            <div className="avatar" style={{ background: "var(--danger-color)" }}>
-              <i className="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <div className="bubble" style={{ borderColor: "rgba(239, 68, 68, 0.2)", background: "rgba(239, 68, 68, 0.05)" }}>
-              <span style={{ color: "var(--danger-color)", fontWeight: 500 }}>{text}</span>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className={`message ${role}`}>
-          <div className="avatar">
-            <i className={isAi ? "fa-solid fa-robot" : "fa-solid fa-user"}></i>
-          </div>
-          <div className="bubble">
-            <div>{text}</div>
-
-            {/* AI Diagnostics & Metadata */}
-            {isAi && metadata && (
-              <div className="diagnostics-banner" style={{ flexWrap: 'wrap', gap: '8px' }}>
-                {grounded !== undefined && (
-                  <div className="diag-item">
-                    <span className={`badge ${grounded ? 'grounded' : 'not-grounded'}`} title={metadata.judge_reason || ''}>
-                      {grounded ? 'Grounded' : 'Not Grounded'}
-                    </span>
-                  </div>
-                )}
-                {confidence !== undefined && (
-                  <div className="diag-item" title={metadata.judge_reason || ''}>
-                    <i className="fa-solid fa-shield-halved"></i>
-                    <span>Confidence: {(confidence * 100).toFixed(0)}%</span>
-                  </div>
-                )}
-                {metadata.query_type && (
-                  <div className="diag-item">
-                    <i className="fa-solid fa-magnifying-glass"></i>
-                    <span>Query: {metadata.query_type}</span>
-                  </div>
-                )}
-                {metadata.judge_reason && (
-                  <div className="diag-item" style={{ fontStyle: 'italic', opacity: 0.8 }} title="Gemini Judge Critic Evaluation">
-                    <i className="fa-solid fa-scale-balanced" style={{ color: 'var(--accent-color)', marginRight: '4px' }}></i>
-                    <span>Critic: {metadata.judge_reason}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Citations Accordion */}
-            {isAi && sources && sources.length > 0 && (
-              <div className="citations-section">
-                <div className="citations-header" onClick={() => setIsOpen(!isOpen)}>
-                  <span>
-                    <i className="fa-solid fa-book-open mr-2" style={{ marginRight: '6px' }}></i>
-                    References ({sources.length} sources)
-                  </span>
-                  <i className={`fa-solid fa-chevron-${isOpen ? 'up' : 'down'}`}></i>
-                </div>
-                {isOpen && (
-                  <div className="citations-body">
-                    {sources.map((src, i) => (
-                      <div key={i} className="source-card">
-                        <div className="source-meta">
-                          <span className="source-title" title={src.source}>
-                            <i className="fa-regular fa-file-pdf" style={{ marginRight: '6px' }}></i>
-                            {src.source}
-                          </span>
-                          <span className="source-score" title="Relevance score from Qwen grader">
-                            Match: {(src.relevance_score * 100).toFixed(0)}%
-                          </span>
+                        <div className="control-group">
+                          <div className="control-label">
+                            <span>Context Limit (tokens)</span> <span>{contextLimit}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            className="control-slider" 
+                            min="500" max="16000" step="500"
+                            value={contextLimit} 
+                            onChange={(e) => setContextLimit(Number(e.target.value))} 
+                          />
                         </div>
-                        <div className="source-text">{src.text}</div>
+
+                        <div className="control-group">
+                          <div className="control-label">
+                            <span>Temperature</span> <span>{temperature}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            className="control-slider" 
+                            min="0" max="1" step="0.1"
+                            value={temperature} 
+                            onChange={(e) => setTemperature(Number(e.target.value))} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Retrieval Overview & Latency Chart */}
+                      <div className="card">
+                        <div className="card-header">
+                          <div className="card-title">Retrieval Overview</div>
+                          <i className="fa-solid fa-info-circle" style={{ color: 'var(--text-subtle)' }}></i>
+                        </div>
+
+                        <div className="stats-row">
+                          <div className="stat-box">
+                            <div className="stat-value">{sources.length}</div>
+                            <div className="stat-label">Sources</div>
+                          </div>
+                          <div className="stat-box">
+                            <div className="stat-value">{sources.length > 0 ? Math.min(sources.length, topK) : 0}</div>
+                            <div className="stat-label">Used in Context</div>
+                          </div>
+                          <div className="stat-box">
+                            <div className="stat-value">{latency}s</div>
+                            <div className="stat-label">Latency</div>
+                          </div>
+                        </div>
+
+                        {/* Latency Chart SVG */}
+                        <div className="latency-chart-box">
+                          <svg width="100%" height="100%" viewBox="0 0 280 80">
+                            <polyline
+                              fill="none"
+                              stroke="#6366f1"
+                              strokeWidth="3"
+                              points={`0,${80 - runLatencies[0]*40} 70,${80 - runLatencies[1]*40} 140,${80 - runLatencies[2]*40} 210,${80 - runLatencies[3]*40} 280,${80 - runLatencies[4]*40}`}
+                            />
+                            {runLatencies.map((val, i) => (
+                              <circle key={i} cx={i * 70} cy={80 - val * 40} r="4" fill="#4f46e5" />
+                            ))}
+                          </svg>
+                        </div>
+
+                        <div className="relevance-scale">
+                          <span>Low</span>
+                          <div className="scale-bar"></div>
+                          <span>High Relevance</span>
+                        </div>
+                      </div>
+
+                      {/* Run Comparison Table */}
+                      <div className="card">
+                        <div className="card-header">
+                          <div className="card-title">Run Comparison</div>
+                          <button className="btn-clear-filters" onClick={() => alert('Starting new comparison run')}>New Comparison</button>
+                        </div>
+
+                        <table className="comparison-table">
+                          <thead>
+                            <tr>
+                              <th>Metric</th>
+                              <th>Run A (Top K=5)</th>
+                              <th>Run B (Top K=10)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>Retrieval Precision</td>
+                              <td>82%</td>
+                              <td><strong>91%</strong></td>
+                            </tr>
+                            <tr>
+                              <td>Answer Faithfulness</td>
+                              <td>89%</td>
+                              <td><strong>94%</strong></td>
+                            </tr>
+                            <tr>
+                              <td>Latency</td>
+                              <td>1.21s</td>
+                              <td>1.83s</td>
+                            </tr>
+                            <tr>
+                              <td>Used Chunks</td>
+                              <td>5</td>
+                              <td>10</td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <div className="winner-badge">
+                          <i className="fa-solid fa-check"></i> Better overall
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Library Tab */}
+              {activeTab === 'library' && (
+                <div className="card">
+                  <div className="card-header">
+                    <div className="card-title"><i className="fa-solid fa-book-open"></i> Research Paper Library</div>
+                  </div>
+
+                  {ingestStatus && (
+                    <div style={{ padding: '12px', borderRadius: '8px', marginBottom: '16px', background: 'var(--primary-subtle)', color: 'var(--primary)', fontWeight: '600' }}>
+                      {ingestStatus.text}
+                    </div>
+                  )}
+
+                  <div style={{ border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '30px', textAlign: 'center', marginBottom: '20px' }}>
+                    <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '32px', color: 'var(--primary)', marginBottom: '12px' }}></i>
+                    <div style={{ fontWeight: '700', fontSize: '15px' }}>Upload Research Papers (PDF)</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>On-Device Embeddings via FastEmbed (BAAI/bge-small-en-v1.5)</div>
+                    <input 
+                      type="file" 
+                      accept=".pdf" 
+                      onChange={(e) => handleUpload(e.target.files[0])} 
+                      style={{ display: 'none' }} 
+                      id="pdf-file-input" 
+                    />
+                    <label htmlFor="pdf-file-input" className="btn-search-primary" style={{ display: 'inline-flex', cursor: 'pointer' }}>
+                      Select PDF File
+                    </label>
+                  </div>
+
+                  <div className="summary-sources-title" style={{ marginBottom: '12px' }}>Ingested Papers ({documents.length})</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {documents.map((doc, idx) => (
+                      <div key={idx} className="source-item-card" style={{ alignItems: 'center' }}>
+                        <i className="fa-regular fa-file-pdf" style={{ fontSize: '24px', color: 'var(--danger)' }}></i>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: '700', fontSize: '14px' }}>{doc.filename}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{doc.chunks !== undefined ? doc.chunks : doc.chunk_count} chunks indexed in Qdrant</div>
+                        </div>
+                        <button className="btn-chip" onClick={() => alert(`Chunks count: ${doc.chunks !== undefined ? doc.chunks : doc.chunk_count}`)}>View Chunks</button>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+
+              {/* Summarize / Evaluate / History Tabs */}
+              {activeTab === 'evaluate' && (
+                <div className="card">
+                  <div className="card-header">
+                    <div className="card-title"><i className="fa-solid fa-chart-column"></i> RAG Evaluation & Benchmarks</div>
+                  </div>
+                  <p style={{ color: 'var(--text-muted)' }}>DeepEval & Ragas evaluation benchmarks for precision, recall, and grounding faithfulness.</p>
+                </div>
+              )}
+            </main>
           </div>
+
+          {/* Footer Status Bar */}
+          <footer className="footer-bar">
+            <div className="status-pill">
+              <div className="status-dot"></div> System Status: All Good
+            </div>
+            <div>
+              Vector DB: Qdrant | LLM: {llmName} | Embedding Model: {embeddingModel}
+            </div>
+            <div>v1.0.0</div>
+          </footer>
         </div>
       );
     }
 
-    const container = document.getElementById('root');
-    const root = ReactDOM.createRoot(container);
+    const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
 </body>

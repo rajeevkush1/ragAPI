@@ -37,15 +37,13 @@ echo "Configuring .env file..."
 cp .env.example .env
 
 # Fetch API Keys from GCP instance metadata and append to .env
-GROQ_KEY=$(curl -fsSL -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/groq-api-key 2>/dev/null)
-GEMINI_KEY=$(curl -fsSL -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/gemini-api-key 2>/dev/null)
+OPENROUTER_KEY=$(curl -fsSL -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/openrouter-api-key 2>/dev/null)
 
-if [ ! -z "$GROQ_KEY" ]; then
-    echo "GROQ_API_KEY=$GROQ_KEY" >> .env
+if [ ! -z "$OPENROUTER_KEY" ]; then
+    echo "OPENROUTER_API_KEY=$OPENROUTER_KEY" >> .env
 fi
-if [ ! -z "$GEMINI_KEY" ]; then
-    echo "GEMINI_API_KEY=$GEMINI_KEY" >> .env
-fi
+
+
 
 
 # 5. Spin up Docker Compose stack

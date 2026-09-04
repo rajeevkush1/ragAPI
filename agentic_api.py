@@ -21,7 +21,7 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
 
 import config
-from agentic_graph import build_agent_graph, get_llm
+from agentic_graph import build_agent_graph, get_llm, get_main_llm, get_fallback_llm
 
 app = FastAPI(
     title="Agentic RAG API",
@@ -47,6 +47,10 @@ class QueryRequest(BaseModel):
     thread_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     stream: bool = Field(True)
     embedding_model: str = Field(default="BAAI/bge-small-en-v1.5")
+    retrieval_strategy: str = Field(default="hybrid")
+    top_k: int = Field(default=5)
+    context_limit: int = Field(default=4000)
+    temperature: float = Field(default=0.2)
 
 class QueryResponse(BaseModel):
     thread_id: str
@@ -61,7 +65,7 @@ def _sse(data: dict) -> str:
     return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 def parse_citations_and_diagnostics(messages: list) -> tuple[list[dict], bool, float, str]:
-    """Parse messages list to extract source citations and judge diagnostics."""
+    """Parse messages list to extract rich source citations and judge diagnostics."""
     sources = []
     grounded = True
     confidence = 0.95
@@ -79,10 +83,16 @@ def parse_citations_and_diagnostics(messages: list) -> tuple[list[dict], bool, f
                     if len(lines) == 2:
                         header, body = lines[0], lines[1]
                         source_match = re.search(r"Source:\s*([^|]+)", header)
-                        title_match = re.search(r"Title:\s*(.+)", header)
+                        title_match = re.search(r"Title:\s*([^|]+)", header)
+                        authors_match = re.search(r"Authors:\s*([^|]+)", header)
+                        venue_match = re.search(r"Venue:\s*([^|]+)", header)
+                        rel_match = re.search(r"Relevance:\s*([0-9.]+)", header)
                         
                         source_name = source_match.group(1).strip() if source_match else "unknown"
                         title_name = title_match.group(1).strip() if title_match else ""
+                        authors_name = authors_match.group(1).strip() if authors_match else ""
+                        venue_name = venue_match.group(1).strip() if venue_match else ""
+                        rel_score = float(rel_match.group(1).strip()) if rel_match else 0.95
                         
                         if body.startswith("Content: "):
                             body = body[9:]
@@ -91,8 +101,12 @@ def parse_citations_and_diagnostics(messages: list) -> tuple[list[dict], bool, f
                         if not any(s["text"] == body for s in sources):
                             sources.append({
                                 "source": f"{source_name} ({title_name})" if title_name else source_name,
+                                "raw_source": source_name,
+                                "title": title_name or source_name,
+                                "authors": authors_name or "Research Authors",
+                                "venue": venue_name or "arXiv preprint",
                                 "text": body,
-                                "relevance_score": 0.95
+                                "relevance_score": rel_score
                             })
                             
     # 2. Parse final AIMessage diagnostics (attached by judge_node)
@@ -107,16 +121,30 @@ def parse_citations_and_diagnostics(messages: list) -> tuple[list[dict], bool, f
             
     return sources, grounded, confidence, judge_reason
 
-async def _stream_graph(question: str, thread_id: str, embedding_model: str) -> AsyncIterator[str]:
+async def _stream_graph(
+    question: str, 
+    thread_id: str, 
+    embedding_model: str = "BAAI/bge-small-en-v1.5",
+    retrieval_strategy: str = "hybrid",
+    top_k: int = 5,
+    context_limit: int = 4000,
+    temperature: float = 0.2
+) -> AsyncIterator[str]:
     """Async generator running the Agentic RAG graph and yielding SSE events."""
     config_dict = {
         "configurable": {
             "thread_id": thread_id,
             "embedding_model": embedding_model,
+            "retrieval_strategy": retrieval_strategy,
+            "top_k": top_k,
+            "context_limit": context_limit,
+            "temperature": temperature,
         },
         "recursion_limit": 50,
     }
     
+    start_time = time.time()
+    config.logger.info(f"[SSE Stream] Question: '{question}' | thread_id: '{thread_id}'")
     yield _sse({"type": "start", "thread_id": thread_id, "turn": "agentic"})
     
     # We initialize the state with a single HumanMessage containing the user's question
@@ -158,9 +186,11 @@ async def _stream_graph(question: str, thread_id: str, embedding_model: str) -> 
                         })
                         
     except asyncio.CancelledError:
+        config.logger.warning(f"[SSE Stream] Cancelled for thread_id: '{thread_id}'")
         yield _sse({"type": "cancelled", "thread_id": thread_id})
         return
     except Exception as exc:
+        config.logger.error(f"[SSE Stream] Exception for thread_id '{thread_id}': {exc}")
         yield _sse({"type": "error", "message": str(exc), "thread_id": thread_id})
         return
         
@@ -180,6 +210,9 @@ async def _stream_graph(question: str, thread_id: str, embedding_model: str) -> 
             sources, grounded, confidence, judge_reason = parse_citations_and_diagnostics(messages)
     except Exception:
         pass
+
+    elapsed = round(time.time() - start_time, 2)
+    config.logger.info(f"[SSE Stream Completed] thread_id: '{thread_id}' | latency: {elapsed}s | grounded: {grounded} | sources: {len(sources)}")
         
     yield _sse({
         "type": "done",
@@ -187,27 +220,43 @@ async def _stream_graph(question: str, thread_id: str, embedding_model: str) -> 
         "sources": sources,
         "grounded": grounded,
         "confidence": confidence,
+        "latency": elapsed,
+        "used_chunks_count": len(sources),
         "metadata": {
             "thread_id": thread_id,
             "agent_node": "agent",
             "query_type": "vector",
             "judge_reason": judge_reason,
+            "retrieval_strategy": retrieval_strategy,
+            "top_k": top_k,
+            "context_limit": context_limit,
+            "temperature": temperature,
         }
     })
 
 @app.get("/health", tags=["System"])
 async def health():
-    """System health check and dynamic model status."""
-    resolved_llm = get_llm()
-    model_class = resolved_llm.__class__.__name__
-    model_name = getattr(resolved_llm, "model", getattr(resolved_llm, "model_name", "unknown"))
+    """System health check and dynamic model status (Nemotron Main LLM + Ollama Fallback)."""
+    main_llm_inst = get_main_llm()
+    fallback_llm_inst = get_fallback_llm()
+
+    main_model_name = getattr(main_llm_inst, "model_name", getattr(main_llm_inst, "model", "none")) if main_llm_inst else "none (Ollama active)"
+    fallback_model_name = getattr(fallback_llm_inst, "model", getattr(fallback_llm_inst, "model_name", config.OLLAMA_MODEL))
     
     import os
     active_port = int(os.getenv("PORT", "8000"))
     return {
         "status": "ok",
-        "resolved_llm_class": model_class,
-        "resolved_llm_model": model_name,
+        "main_llm": {
+            "model": main_model_name,
+            "provider": "NVIDIA / OpenRouter (Nemotron)" if main_llm_inst else "disabled",
+            "active": main_llm_inst is not None
+        },
+        "fallback_llm": {
+            "model": fallback_model_name,
+            "provider": "Ollama (local)",
+            "active": True
+        },
         "port": active_port
     }
 
@@ -217,13 +266,25 @@ async def query_endpoint_get(
     thread_id: Optional[str] = None,
     stream: bool = True,
     embedding_model: str = "BAAI/bge-small-en-v1.5",
+    retrieval_strategy: str = "hybrid",
+    top_k: int = 5,
+    context_limit: int = 4000,
+    temperature: float = 0.2,
 ):
     """Run the Agentic RAG pipeline using GET (useful for browser EventSource API)."""
     if not thread_id:
         thread_id = str(uuid.uuid4())
     if stream:
         return StreamingResponse(
-            _stream_graph(question, thread_id, embedding_model),
+            _stream_graph(
+                question, 
+                thread_id, 
+                embedding_model,
+                retrieval_strategy,
+                top_k,
+                context_limit,
+                temperature
+            ),
             media_type="text/event-stream",
             headers={
                 "Cache-Control":   "no-cache",
@@ -232,7 +293,16 @@ async def query_endpoint_get(
             },
         )
     else:
-        req = QueryRequest(question=question, thread_id=thread_id, stream=False, embedding_model=embedding_model)
+        req = QueryRequest(
+            question=question, 
+            thread_id=thread_id, 
+            stream=False, 
+            embedding_model=embedding_model,
+            retrieval_strategy=retrieval_strategy,
+            top_k=top_k,
+            context_limit=context_limit,
+            temperature=temperature
+        )
         return await query_endpoint(req)
 
 @app.post("/query", response_model=QueryResponse, tags=["RAG"])
@@ -240,7 +310,15 @@ async def query_endpoint(req: QueryRequest):
     """Query the Agentic RAG chain. Supports SSE streaming or standard JSON response."""
     if req.stream:
         return StreamingResponse(
-            _stream_graph(req.question, req.thread_id, req.embedding_model),
+            _stream_graph(
+                req.question, 
+                req.thread_id, 
+                req.embedding_model,
+                req.retrieval_strategy,
+                req.top_k,
+                req.context_limit,
+                req.temperature
+            ),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -321,12 +399,23 @@ def get_conversation(thread_id: str):
 
 @app.delete("/conversations/{thread_id}", tags=["Memory"])
 def delete_conversation(thread_id: str):
-    """Clear memory for a specific thread_id."""
+    """Clear memory and purge temporary session vectors for a specific thread_id."""
+    from ingest import delete_session_data
     cfg = {"configurable": {"thread_id": thread_id}}
     try:
-        # We can update the state to store empty messages list to reset the history
         _graph.update_state(cfg, {"messages": []})
+        delete_session_data(thread_id)
         return {"status": "cleared", "thread_id": thread_id}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+@app.delete("/sessions/{session_id}", tags=["Memory"])
+def delete_session(session_id: str):
+    """Purge all vectors and temporary files associated with session_id."""
+    from ingest import delete_session_data
+    try:
+        delete_session_data(session_id)
+        return {"status": "purged", "session_id": session_id}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -358,8 +447,8 @@ def list_threads():
 
 # ── Documents Management ──────────────────────────────────────────────────────
 @app.get("/documents", tags=["System"])
-def list_documents():
-    """List all ingested PDFs and their chunk counts in Qdrant."""
+def list_documents(session_id: Optional[str] = None, thread_id: Optional[str] = None):
+    """List all ingested PDFs and their chunk counts in Qdrant (filtered by session if specified)."""
     from qdrant_client import QdrantClient
     from qdrant_client.models import Filter, FieldCondition, MatchValue
     try:
@@ -368,8 +457,19 @@ def list_documents():
         if config.COLLECTION_NAME not in existing:
             return {"documents": [], "count": 0}
 
+        active_session = session_id or thread_id
+        scroll_filter = None
+        if active_session and active_session != "global":
+            scroll_filter = Filter(
+                should=[
+                    FieldCondition(key="session_id", match=MatchValue(value=active_session)),
+                    FieldCondition(key="session_id", match=MatchValue(value="global")),
+                ]
+            )
+
         scroll_res = client.scroll(
             collection_name=config.COLLECTION_NAME,
+            scroll_filter=scroll_filter,
             limit=1000,
             with_payload=["source"],
             with_vectors=False
@@ -382,24 +482,28 @@ def list_documents():
 
         results = []
         for src in sorted(sources):
+            must_conditions = [FieldCondition(key="source", match=MatchValue(value=src))]
+            if active_session and active_session != "global":
+                must_conditions.append(
+                    Filter(
+                        should=[
+                            FieldCondition(key="session_id", match=MatchValue(value=active_session)),
+                            FieldCondition(key="session_id", match=MatchValue(value="global")),
+                        ]
+                    )
+                )
             count = client.count(
                 collection_name=config.COLLECTION_NAME,
-                count_filter=Filter(
-                    must=[
-                        FieldCondition(
-                            key="source",
-                            match=MatchValue(value=src)
-                        )
-                    ]
-                )
+                count_filter=Filter(must=must_conditions)
             ).count
             results.append({
                 "filename": src,
                 "chunks": count
             })
 
-        return {"documents": results, "count": len(results)}
+        return {"documents": results, "count": len(results), "session_id": active_session or "global"}
     except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
         raise HTTPException(status_code=500, detail=str(exc))
 
 
@@ -528,9 +632,13 @@ async def ingest_endpoint(
     background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     embedding_model: str = "BAAI/bge-small-en-v1.5",
+    session_id: Optional[str] = None,
+    thread_id: Optional[str] = None,
 ):
-    """Upload and ingest multiple PDFs into Qdrant in a single batch."""
+    """Upload and ingest multiple PDFs into Qdrant in a single batch tagged with session_id."""
     from ingest import ingest_pdf, unload_embed_model
+
+    active_session = session_id or thread_id or "global"
 
     results = []
     for file in files:
@@ -562,7 +670,7 @@ async def ingest_endpoint(
 
             t0 = time.perf_counter()
             try:
-                stats = await asyncio.to_thread(ingest_pdf, pdf_path, parser="auto", embedding_model=embedding_model)
+                stats = await asyncio.to_thread(ingest_pdf, pdf_path, parser="auto", embedding_model=embedding_model, session_id=active_session)
                 results.append(FileIngestStats(
                     filename=file.filename,
                     chunks=stats.get("chunks", 0),
@@ -601,5 +709,5 @@ async def ingest_endpoint(
 
 if __name__ == "__main__":
     import os
-    port = int(os.getenv("PORT", "8000"))
+    port = int(os.getenv("PORT", "8001"))
     uvicorn.run("agentic_api:app", host="0.0.0.0", port=port, reload=False)
