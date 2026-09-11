@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ResearchRAG | AI Research Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ResearchRAG | Mobile AI Chatbot</title>
   
-  <!-- Google Fonts -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -20,13 +20,38 @@
 
   <style>
     :root {
-      /* Light Mode Palette (Default matching screenshot) */
-      --bg-main: #f8fafc;
-      --bg-surface: #ffffff;
-      --bg-card: #ffffff;
-      --bg-subtle: #f1f5f9;
-      --border-color: #e2e8f0;
-      --border-hover: #cbd5e1;
+      --bg-main: #090d16;
+      --bg-mobile-frame: #111827;
+      --bg-surface: #1f2937;
+      --bg-subtle: #374151;
+      --border-color: rgba(255, 255, 255, 0.1);
+      
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --text-subtle: #6b7280;
+      
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-subtle: rgba(99, 102, 241, 0.18);
+      
+      --user-bubble-bg: linear-gradient(135deg, #4f46e5, #6366f1);
+      --ai-bubble-bg: #1f2937;
+      
+      --success: #10b981;
+      --success-subtle: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --shadow-mobile: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="light"] {
+      --bg-main: #f1f5f9;
+      --bg-mobile-frame: #ffffff;
+      --bg-surface: #f8fafc;
+      --bg-subtle: #e2e8f0;
+      --border-color: #cbd5e1;
       
       --text-main: #0f172a;
       --text-muted: #64748b;
@@ -36,38 +61,8 @@
       --primary-hover: #4338ca;
       --primary-subtle: #e0e7ff;
       
-      --accent: #6366f1;
-      --success: #10b981;
-      --success-subtle: #d1fae5;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      
-      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-    }
-
-    [data-theme="dark"] {
-      /* Dark Mode Palette */
-      --bg-main: #0b0f19;
-      --bg-surface: #111827;
-      --bg-card: #1f2937;
-      --bg-subtle: #1e293b;
-      --border-color: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.16);
-      
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-subtle: #64748b;
-      
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --primary-subtle: rgba(99, 102, 241, 0.15);
-      
-      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
-      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
-      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+      --user-bubble-bg: linear-gradient(135deg, #4f46e5, #6366f1);
+      --ai-bubble-bg: #ffffff;
     }
 
     * {
@@ -81,711 +76,364 @@
       background-color: var(--bg-main);
       color: var(--text-main);
       height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      transition: background-color 0.2s ease, color 0.2s ease;
-    }
-
-    /* Scrollbars */
-    ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: var(--text-subtle);
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--text-muted);
-    }
-
-    #root {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
       width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
     }
 
-    /* Top Navigation Header */
-    .top-header {
-      height: 60px;
-      background: var(--bg-surface);
+    /* Mobile Container Frame */
+    .mobile-app-wrapper {
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      max-height: 940px;
+      background: var(--bg-mobile-frame);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-mobile);
+      border-radius: 0px;
+    }
+
+    @media (min-width: 520px) {
+      .mobile-app-wrapper {
+        height: 94vh;
+        border-radius: 28px;
+        border: 1px solid var(--border-color);
+      }
+    }
+
+    /* Header Bar */
+    .chat-header {
+      padding: 14px 18px;
+      background: var(--bg-mobile-frame);
       border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
-      z-index: 100;
+      z-index: 20;
     }
 
-    .brand-logo {
+    .header-info {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-weight: 800;
-      font-size: 18px;
-      color: var(--text-main);
     }
 
-    .brand-icon {
-      background: linear-gradient(135deg, #4f46e5, #818cf8);
-      color: white;
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
+    .bot-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
-    }
-
-    .brand-sub {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      margin-top: -2px;
-    }
-
-    /* Top Center Nav Tabs */
-    .nav-tabs {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .nav-tab {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
+      color: white;
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
       position: relative;
     }
 
-    .nav-tab:hover {
-      color: var(--text-main);
-      background: var(--bg-subtle);
-    }
-
-    .nav-tab.active {
-      color: var(--primary);
-    }
-
-    .nav-tab.active::after {
-      content: '';
+    .bot-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      border: 2px solid var(--bg-mobile-frame);
       position: absolute;
-      bottom: -12px;
-      left: 16px;
-      right: 16px;
-      height: 3px;
-      background: var(--primary);
-      border-radius: 3px 3px 0 0;
+      bottom: -1px;
+      right: -1px;
     }
 
-    /* Header Right Tools */
+    .bot-title {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .bot-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
     }
 
     .icon-btn {
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      border: 1px solid var(--border-color);
       background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       color: var(--text-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
+      font-size: 14px;
+      transition: all 0.2s ease;
     }
 
     .icon-btn:hover {
       color: var(--text-main);
-      border-color: var(--border-hover);
       background: var(--bg-subtle);
     }
 
-    .user-avatar {
-      background: var(--primary);
-      color: white;
-      font-weight: 700;
-      font-size: 13px;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
+    /* Active Documents Banner */
+    .docs-banner {
+      padding: 8px 16px;
+      background: var(--primary-subtle);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      gap: 4px;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
     }
 
-    /* Application Main Layout Grid */
-    .main-layout {
-      display: grid;
-      grid-template-columns: 260px 1fr;
+    /* Scrollable Chat Area */
+    .chat-messages {
       flex: 1;
-      overflow: hidden;
-    }
-
-    /* Left Sidebar */
-    .sidebar {
-      background: var(--bg-surface);
-      border-right: 1px solid var(--border-color);
-      display: flex;
-      flex-direction: column;
+      overflow-y: auto;
       padding: 16px;
-      overflow-y: auto;
-      gap: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .btn-new-research {
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 12px 16px;
-      font-weight: 700;
-      font-size: 14px;
+    /* Chat Message Items */
+    .chat-message-group {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      cursor: pointer;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 88%;
+    }
+
+    .chat-message-group.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .chat-message-group.assistant {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .chat-bubble {
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+      position: relative;
+    }
+
+    .user .chat-bubble {
+      background: var(--user-bubble-bg);
+      color: white;
+      border-bottom-right-radius: 4px;
       box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-      transition: all 0.2s;
     }
 
-    .btn-new-research:hover {
-      background: var(--primary-hover);
-      transform: translateY(-1px);
-    }
-
-    .sidebar-group-title {
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--text-subtle);
-      margin-bottom: 10px;
-    }
-
-    .quick-actions-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .quick-action-btn {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      border: 1px solid var(--border-color);
-      background: var(--bg-surface);
-      cursor: pointer;
-      transition: all 0.15s ease;
-      text-align: left;
-    }
-
-    .quick-action-btn:hover {
-      color: var(--primary);
-      border-color: var(--primary-subtle);
-      background: var(--primary-subtle);
-    }
-
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .history-item {
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .history-item:hover, .history-item.active {
-      background: var(--primary-subtle);
-      border-color: var(--primary-subtle);
-    }
-
-    .history-title {
-      font-size: 13px;
-      font-weight: 700;
+    .assistant .chat-bubble {
+      background: var(--ai-bubble-bg);
       color: var(--text-main);
-      margin-bottom: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .history-meta {
-      font-size: 11px;
-      color: var(--text-subtle);
-    }
-
-    .btn-view-all-history {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-muted);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 0;
-      text-align: left;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .btn-view-all-history:hover {
-      color: var(--primary);
-    }
-
-    /* Workspace Content Area */
-    .workspace {
-      display: flex;
-      flex-direction: column;
-      background: var(--bg-main);
-      overflow-y: auto;
-      padding: 20px 24px;
-      gap: 20px;
-    }
-
-    /* Search Header Box */
-    .search-box-card {
-      background: var(--bg-surface);
+      border-bottom-left-radius: 4px;
       border: 1px solid var(--border-color);
-      border-radius: 14px;
-      padding: 20px 24px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .search-header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .search-title {
-      font-size: 18px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .badge-tips {
-      background: var(--primary-subtle);
-      color: var(--primary);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 6px;
-    }
-
-    .btn-advanced-toggle {
-      background: none;
-      border: none;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--primary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .search-input-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .search-input {
-      flex: 1;
-      background: var(--bg-subtle);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 12px 16px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-main);
-      outline: none;
-      transition: all 0.2s;
-    }
-
-    .search-input:focus {
-      border-color: var(--primary);
-      background: var(--bg-surface);
-      box-shadow: 0 0 0 3px var(--primary-subtle);
-    }
-
-    .btn-search-primary {
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 12px 20px;
-      font-size: 14px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s;
-    }
-
-    .btn-search-primary:hover:not(:disabled) {
-      background: var(--primary-hover);
-    }
-
-    .btn-search-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .filter-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .filter-select {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      outline: none;
-    }
-
-    .filter-select:hover {
-      border-color: var(--border-hover);
-      color: var(--text-main);
-    }
-
-    .btn-clear-filters {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--primary);
-      background: none;
-      border: none;
-      cursor: pointer;
-      margin-left: 4px;
-    }
-
-    /* 3-Column Dashboard Layout */
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 1.1fr 1.2fr 340px;
-      gap: 20px;
-      align-items: start;
-    }
-
-    @media (max-width: 1400px) {
-      .dashboard-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-      .right-panel {
-        grid-column: span 2;
-      }
-    }
-
-    /* Section Cards */
-    .card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-
-    .card-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* Retrieved Sources Stream */
-    .source-cards-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .source-item-card {
+    .system-event-card {
+      align-self: center;
       background: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      gap: 12px;
-      transition: border-color 0.2s;
-    }
-
-    .source-item-card:hover {
-      border-color: var(--primary-subtle);
-    }
-
-    .source-num-badge {
-      background: var(--primary);
-      color: white;
-      font-weight: 800;
+      padding: 8px 14px;
       font-size: 12px;
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+      max-width: 90%;
+    }
+
+    /* Sources Pill / Accordion */
+    .sources-accordion {
+      margin-top: 10px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 8px;
+    }
+
+    .sources-toggle-btn {
+      background: none;
+      border: none;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+    }
+
+    .source-chunk-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .source-chunk-title {
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+
+    /* Ingestion Status Toast Above Input Bar */
+    .ingest-toast {
+      padding: 8px 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--primary);
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 16px 8px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    /* Bottom Mobile Input Bar */
+    .chat-input-bar {
+      padding: 12px 16px 16px 16px;
+      background: var(--bg-mobile-frame);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .plus-ingest-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--primary-subtle);
+      border: 1.5px dashed var(--primary);
+      color: var(--primary);
+      font-size: 18px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      transition: all 0.2s ease;
+      position: relative;
     }
 
-    .source-content {
+    .plus-ingest-btn:hover {
+      background: var(--primary);
+      color: white;
+      border-style: solid;
+      transform: scale(1.06);
+    }
+
+    .chat-textarea {
       flex: 1;
-    }
-
-    .source-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .source-paper-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-main);
-      line-height: 1.3;
-    }
-
-    .source-authors {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-
-    .source-snippet {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: 12px;
-      background: var(--bg-subtle);
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-family: var(--font-family);
-    }
-
-    .source-actions-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .btn-chip {
-      background: var(--bg-subtle);
+      background: var(--bg-surface);
       border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.15s;
-    }
-
-    .btn-chip:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-
-    .badge-relevance {
-      background: var(--success-subtle);
-      color: var(--success);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 6px;
-      margin-left: auto;
-    }
-
-    /* AI Summary Column */
-    .summary-badge-llm {
-      background: var(--primary-subtle);
-      color: var(--primary);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .summary-text-body {
+      border-radius: 22px;
+      padding: 11px 16px;
       font-size: 14px;
-      line-height: 1.7;
       color: var(--text-main);
-      margin-bottom: 16px;
-      white-space: pre-wrap;
+      outline: none;
+      resize: none;
+      max-height: 100px;
+      min-height: 42px;
+      line-height: 1.4;
+      transition: border-color 0.2s;
     }
 
-    .citation-tag {
-      color: var(--primary);
-      font-weight: 700;
-      cursor: pointer;
-      margin: 0 2px;
+    .chat-textarea:focus {
+      border-color: var(--primary);
     }
 
-    .summary-sources-box {
-      margin-bottom: 16px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .summary-sources-title {
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      color: var(--text-subtle);
-      margin-bottom: 8px;
-    }
-
-    .summary-source-chip-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .summary-source-item {
-      font-size: 12px;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .action-grid-buttons {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 16px;
-      margin-bottom: 16px;
-    }
-
-    .btn-action-purple {
+    .send-msg-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
       background: var(--primary);
       color: white;
       border: none;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 15px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      transition: all 0.2s;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+      transition: all 0.2s ease;
     }
 
-    .btn-action-purple:hover {
-      background: var(--primary-hover);
+    .send-msg-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
     }
 
-    .btn-action-outline {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-main);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-
-    .btn-action-outline:hover {
-      background: var(--bg-subtle);
-      border-color: var(--border-hover);
-    }
-
-    .grounding-status-bar {
-      background: var(--success-subtle);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      color: var(--success);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 12px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    /* Right Panel (RAG Controls & Overview) */
-    .right-panel {
+    /* Settings Slide-Up Drawer / Modal */
+    .drawer-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      justify-content: flex-end;
+    }
+
+    .drawer-content {
+      background: var(--bg-mobile-frame);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 20px 24px 30px 24px;
+      max-height: 85%;
+      overflow-y: auto;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      font-size: 16px;
+      font-weight: 700;
     }
 
     .control-group {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
 
     .control-label {
@@ -799,8 +447,8 @@
     .control-select {
       background: var(--bg-surface);
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 8px 12px;
+      border-radius: 10px;
+      padding: 10px 14px;
       font-size: 13px;
       font-weight: 600;
       color: var(--text-main);
@@ -812,148 +460,47 @@
       cursor: pointer;
     }
 
-    /* Overview Stats */
-    .stats-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .stat-box {
-      background: var(--bg-subtle);
+    .doc-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 10px;
-      padding: 12px;
-      text-align: center;
+      margin-bottom: 8px;
     }
 
-    .stat-value {
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--text-main);
+    /* Quick Prompts Chips */
+    .quick-prompts {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 16px 12px 16px;
+      scrollbar-width: none;
     }
 
-    .stat-label {
-      font-size: 10px;
+    .quick-prompts::-webkit-scrollbar {
+      display: none;
+    }
+
+    .prompt-chip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 6px 14px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
     }
 
-    .latency-chart-box {
-      height: 100px;
-      width: 100%;
-      margin-bottom: 12px;
-    }
-
-    .relevance-scale {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-    }
-
-    .scale-bar {
-      height: 6px;
-      flex: 1;
-      margin: 0 10px;
-      border-radius: 3px;
-      background: linear-gradient(to right, #ef4444, #f59e0b, #10b981);
-    }
-
-    /* Run Comparison Table */
-    .comparison-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      margin-top: 10px;
-    }
-
-    .comparison-table th, .comparison-table td {
-      padding: 8px;
-      text-align: center;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .comparison-table th:first-child, .comparison-table td:first-child {
-      text-align: left;
-      font-weight: 700;
-      color: var(--text-muted);
-    }
-
-    .winner-badge {
-      background: var(--success-subtle);
-      color: var(--success);
-      font-size: 11px;
-      font-weight: 800;
-      padding: 4px;
-      border-radius: 6px;
-      text-align: center;
-      margin-top: 8px;
-    }
-
-    /* Footer Status Bar */
-    .footer-bar {
-      height: 36px;
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .status-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: 700;
-      color: var(--success);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--success);
-      border-radius: 50%;
-    }
-
-    /* Modal for Chunks / Library Upload */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .modal-card {
-      background: var(--bg-surface);
-      border-radius: 16px;
-      width: 100%;
-      max-width: 680px;
-      max-height: 85vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
-    }
-
-    .modal-header {
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-weight: 800;
-      font-size: 16px;
+    .prompt-chip:hover {
+      color: var(--primary);
+      border-color: var(--primary);
+      background: var(--primary-subtle);
     }
   </style>
 </head>
@@ -964,8 +511,16 @@
     const { useState, useEffect, useRef } = React;
 
     function App() {
-      const [theme, setTheme] = useState('light');
-      const [activeTab, setActiveTab] = useState('search');
+      const [theme, setTheme] = useState('dark');
+      const [messages, setMessages] = useState([
+        {
+          id: 'welcome',
+          role: 'assistant',
+          content: 'Hello! I am your AI Research Assistant. Tap the **+** icon beside the chat box below to upload PDFs, or ask any research question directly!',
+          sources: [],
+          grounded: true
+        }
+      ]);
       const [question, setQuestion] = useState('');
       const [isSearching, setIsSearching] = useState(false);
       
@@ -975,81 +530,30 @@
       const [contextLimit, setContextLimit] = useState(4000);
       const [temperature, setTemperature] = useState(0.2);
       const [embeddingModel, setEmbeddingModel] = useState('BAAI/bge-small-en-v1.5');
+      const [llmName, setLlmName] = useState('Nemotron / Ollama');
       
-      // Query Response & Streaming State
-      const [aiAnswer, setAiAnswer] = useState('');
-      const [sources, setSources] = useState([]);
-      const [grounded, setGrounded] = useState(true);
-      const [confidence, setConfidence] = useState(0.95);
-      const [latency, setLatency] = useState(1.21);
-      const [llmName, setLlmName] = useState('Ollama');
-      
-      // History State
-      const [history, setHistory] = useState([]);
-      
-      // Session & Document Library State
+      // Session & Ingestion State
       const generateSessionId = () => 'session-' + Math.random().toString(36).substring(2, 10);
       const [sessionId, setSessionId] = useState(generateSessionId);
       const [documents, setDocuments] = useState([]);
       const [uploading, setUploading] = useState(false);
-      const [ingestStatus, setIngestStatus] = useState(null);
+      const [ingestToast, setIngestToast] = useState(null);
+      const [showSettings, setShowSettings] = useState(false);
+      const [showSourcesForMsg, setShowSourcesForMsg] = useState({});
 
-      // Latency history chart runs
-      const [runLatencies, setRunLatencies] = useState([1.1, 0.8, 1.3, 1.0, 1.21]);
+      const messagesEndRef = useRef(null);
+      const fileInputRef = useRef(null);
 
-      const searchInputRef = useRef(null);
-
-      // Handle Ask Follow-up action
-      const handleFollowUp = () => {
-        setActiveTab('search');
-        setQuestion((prev) => (prev && !prev.startsWith('Follow-up:') ? `Follow-up: ` : prev));
-        setTimeout(() => {
-          if (searchInputRef.current) {
-            searchInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            searchInputRef.current.focus();
-          }
-        }, 100);
+      // Auto-scroll to bottom of chat
+      const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       };
 
-      // Handle Exporting summary & citations
-      const handleExport = () => {
-        if (!aiAnswer) return;
-        const text = `# Research Query: ${question}\n\n## AI Answer (${llmName})\n${aiAnswer}\n\n## Sources (${sources.length})\n${sources.map((s, i) => `${i+1}. ${s.title || s.source}\n${s.text}\n`).join('\n')}`;
-        const blob = new Blob([text], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `research_export_${Date.now()}.md`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      };
+      useEffect(() => {
+        scrollToBottom();
+      }, [messages, isSearching, ingestToast]);
 
-      // Toggle Light / Dark Theme
-      const toggleTheme = () => {
-        const nextTheme = theme === 'light' ? 'dark' : 'light';
-        setTheme(nextTheme);
-        document.documentElement.setAttribute('data-theme', nextTheme);
-      };
-
-      // Handle New Research Session Creation & Cleanup of Old Temporary Session Data
-      const handleNewResearch = async () => {
-        if (sessionId) {
-          try {
-            await fetch(`/sessions/${sessionId}`, { method: 'DELETE' });
-          } catch (e) {}
-        }
-        const newId = generateSessionId();
-        setSessionId(newId);
-        setQuestion('');
-        setAiAnswer('');
-        setSources([]);
-        setIngestStatus({ type: 'info', text: 'Started new research session. Temporary session data cleared.' });
-        fetchDocuments(newId);
-      };
-
-      // Fetch Documents & System Health on Load
+      // Fetch System Health & Session Documents
       useEffect(() => {
         fetchHealth();
         fetchDocuments(sessionId);
@@ -1078,17 +582,120 @@
         } catch (e) {}
       };
 
-      // Handle Search Query Submission via SSE
-      const handleSearch = (e) => {
-        if (e) e.preventDefault();
-        if (!question.trim() || isSearching) return;
+      // Toggle Theme
+      const toggleTheme = () => {
+        const nextTheme = theme === 'dark' ? 'light' : 'dark';
+        setTheme(nextTheme);
+        document.documentElement.setAttribute('data-theme', nextTheme);
+      };
 
+      // Reset Session / New Chat
+      const handleNewSession = async () => {
+        if (sessionId) {
+          try {
+            await fetch(`/sessions/${sessionId}`, { method: 'DELETE' });
+          } catch (e) {}
+        }
+        const newId = generateSessionId();
+        setSessionId(newId);
+        setMessages([
+          {
+            id: 'welcome-' + Date.now(),
+            role: 'assistant',
+            content: 'New research chat started! Tap the **+** icon beside the text bar to upload PDFs for this session.',
+            sources: [],
+            grounded: true
+          }
+        ]);
+        setDocuments([]);
+        setIngestToast({ text: 'New session started. Session vector data cleared.', type: 'info' });
+        setTimeout(() => setIngestToast(null), 3000);
+      };
+
+      // Handle PDF Ingestion via + Button
+      const handlePlusClick = () => {
+        if (fileInputRef.current) {
+          fileInputRef.current.click();
+        }
+      };
+
+      const handleFileSelected = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        setIngestToast({ text: `Ingesting "${file.name}"...`, type: 'loading' });
+
+        // Add inline system message in timeline
+        const uploadMsgId = 'sys-' + Date.now();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uploadMsgId,
+            role: 'system',
+            content: `📄 Uploading & indexing "${file.name}" for this chat...`
+          }
+        ]);
+
+        const formData = new FormData();
+        formData.append('files', file);
+        formData.append('embedding_model', embeddingModel);
+        formData.append('thread_id', sessionId);
+
+        try {
+          const res = await fetch(`/ingest?thread_id=${encodeURIComponent(sessionId)}&embedding_model=${encodeURIComponent(embeddingModel)}`, {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (res.ok) {
+            const item = (data.results && data.results[0]) || {};
+            const count = item.chunks !== undefined ? item.chunks : (data.chunk_count || 0);
+            
+            // Update inline system message
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === uploadMsgId
+                  ? { ...m, content: `✅ Ingested "${file.name}" successfully (${count} chunks indexed)` }
+                  : m
+              )
+            );
+            
+            setIngestToast({ text: `✅ "${file.name}" ingested (${count} chunks)`, type: 'success' });
+            fetchDocuments(sessionId);
+          } else {
+            setIngestToast({ text: `Error: ${data.detail || 'Upload failed'}`, type: 'error' });
+          }
+        } catch (err) {
+          setIngestToast({ text: 'Error connecting to ingestion server', type: 'error' });
+        } finally {
+          setUploading(false);
+          if (e.target) e.target.value = '';
+          setTimeout(() => setIngestToast(null), 4000);
+        }
+      };
+
+      // Handle Message Submit (SSE Stream)
+      const handleSendMessage = (e) => {
+        if (e) e.preventDefault();
+        const text = question.trim();
+        if (!text || isSearching) return;
+
+        const userMsgId = 'user-' + Date.now();
+        const aiMsgId = 'ai-' + Date.now();
+
+        // Push User Message
+        setMessages((prev) => [
+          ...prev,
+          { id: userMsgId, role: 'user', content: text },
+          { id: aiMsgId, role: 'assistant', content: '', sources: [], searching: true }
+        ]);
+
+        setQuestion('');
         setIsSearching(true);
-        setAiAnswer('');
-        setSources([]);
 
         const queryParams = new URLSearchParams({
-          question: question,
+          question: text,
           thread_id: sessionId,
           stream: 'true',
           embedding_model: embeddingModel,
@@ -1105,565 +712,314 @@
             const data = JSON.parse(event.data);
 
             if (data.type === 'token') {
-              setAiAnswer((prev) => prev + data.content);
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === aiMsgId
+                    ? { ...msg, content: msg.content + data.content, searching: false }
+                    : msg
+                )
+              );
             } else if (data.type === 'done') {
-              setAiAnswer(data.final_answer || '');
-              if (data.sources && data.sources.length > 0) {
-                setSources(data.sources);
-              }
-              setGrounded(data.grounded !== undefined ? data.grounded : true);
-              setConfidence(data.confidence || 0.95);
-              if (data.latency) {
-                setLatency(data.latency);
-                setRunLatencies((prev) => [...prev.slice(1), data.latency]);
-              }
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === aiMsgId
+                    ? {
+                        ...msg,
+                        content: data.final_answer || msg.content,
+                        sources: data.sources || [],
+                        grounded: data.grounded !== undefined ? data.grounded : true,
+                        confidence: data.confidence || 0.95,
+                        searching: false
+                      }
+                    : msg
+                )
+              );
               setIsSearching(false);
               eventSource.close();
             } else if (data.type === 'error') {
-              setAiAnswer(`Error: ${data.message}`);
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === aiMsgId
+                    ? { ...msg, content: `Error: ${data.message}`, searching: false }
+                    : msg
+                )
+              );
               setIsSearching(false);
               eventSource.close();
             }
           } catch (err) {
-            console.error('Error parsing SSE event', err);
+            console.error('Error parsing SSE payload', err);
           }
         };
 
         eventSource.onerror = (err) => {
-          console.error('EventSource failed', err);
+          console.error('EventSource error', err);
           setIsSearching(false);
           eventSource.close();
         };
-
-        // Add to history
-        setHistory((prev) => [
-          { id: Date.now(), query: question, time: 'Just now' },
-          ...prev.slice(0, 4)
-        ]);
       };
 
-      // Handle PDF Upload
-      const handleUpload = async (file) => {
-        if (!file) return;
-        setUploading(true);
-        setIngestStatus({ type: 'loading', text: `Ingesting ${file.name} for current session...` });
-
-        const formData = new FormData();
-        formData.append('files', file);
-        formData.append('embedding_model', embeddingModel);
-        formData.append('thread_id', sessionId);
-
-        try {
-          const res = await fetch(`/ingest?thread_id=${encodeURIComponent(sessionId)}&embedding_model=${encodeURIComponent(embeddingModel)}`, {
-            method: 'POST',
-            body: formData,
-          });
-          const data = await res.json();
-          if (res.ok) {
-            const item = (data.results && data.results[0]) || {};
-            const count = item.chunks !== undefined ? item.chunks : (data.chunk_count || 0);
-            setIngestStatus({ type: 'success', text: `Successfully ingested ${file.name} (${count} chunks) for session!` });
-            fetchDocuments(sessionId);
-          } else {
-            setIngestStatus({ type: 'error', text: data.detail || 'Upload failed' });
-          }
-        } catch (e) {
-          setIngestStatus({ type: 'error', text: 'Error connecting to ingestion server' });
-        } finally {
-          setUploading(false);
-        }
+      const toggleSources = (msgId) => {
+        setShowSourcesForMsg((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
       };
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* Top Navbar Header */}
-          <header className="top-header">
-            <div className="brand-logo">
-              <div className="brand-icon">
-                <i className="fa-solid fa-layer-group"></i>
+        <div className="mobile-app-wrapper">
+          {/* Hidden File Input for + Icon Ingestion */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".pdf"
+            onChange={handleFileSelected}
+            style={{ display: 'none' }}
+          />
+
+          {/* Mobile Header Bar */}
+          <header className="chat-header">
+            <div className="header-info">
+              <div className="bot-avatar">
+                <i className="fa-solid fa-robot"></i>
+                <div className="bot-status-dot"></div>
               </div>
               <div>
-                <div>ResearchRAG</div>
-                <div className="brand-sub">AI Research Assistant</div>
+                <div className="bot-title">ResearchRAG</div>
+                <div className="bot-subtitle">
+                  <span><i className="fa-solid fa-bolt" style={{ color: 'var(--primary)', fontSize: '10px' }}></i> {llmName}</span>
+                </div>
               </div>
             </div>
 
-            {/* Nav Tabs */}
-            <div className="nav-tabs">
-              <button className={`nav-tab ${activeTab === 'search' ? 'active' : ''}`} onClick={() => setActiveTab('search')}>
-                <i className="fa-solid fa-magnifying-glass"></i> Search
-              </button>
-              <button className={`nav-tab ${activeTab === 'library' ? 'active' : ''}`} onClick={() => setActiveTab('library')}>
-                <i className="fa-solid fa-book-open"></i> Library ({documents.length})
-              </button>
-              <button className={`nav-tab ${activeTab === 'summarize' ? 'active' : ''}`} onClick={() => setActiveTab('summarize')}>
-                <i className="fa-solid fa-brain"></i> Summarize
-              </button>
-              <button className={`nav-tab ${activeTab === 'evaluate' ? 'active' : ''}`} onClick={() => setActiveTab('evaluate')}>
-                <i className="fa-solid fa-chart-column"></i> Evaluate
-              </button>
-              <button className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
-                <i className="fa-solid fa-clock-rotate-left"></i> History
-              </button>
-            </div>
-
-            {/* Controls Right */}
             <div className="header-actions">
-              <button className="icon-btn" onClick={toggleTheme} title="Toggle Theme">
-                <i className={theme === 'light' ? "fa-solid fa-moon" : "fa-solid fa-sun"}></i>
+              <button className="icon-btn" onClick={handleNewSession} title="New Chat Session">
+                <i className="fa-solid fa-rotate-right"></i>
               </button>
-              <button className="icon-btn" title="Help">
-                <i className="fa-regular fa-circle-question"></i>
+              <button className="icon-btn" onClick={() => setShowSettings(!showSettings)} title="RAG Settings">
+                <i className="fa-solid fa-sliders"></i>
               </button>
-              <div className="user-avatar" title="User Profile">
-                RK <i className="fa-solid fa-chevron-down" style={{ fontSize: '9px' }}></i>
-              </div>
+              <button className="icon-btn" onClick={toggleTheme} title="Toggle Dark/Light">
+                <i className={theme === 'dark' ? "fa-solid fa-sun" : "fa-solid fa-moon"}></i>
+              </button>
             </div>
           </header>
 
-          {/* Main Application Layout */}
-          <div className="main-layout">
-            {/* Sidebar */}
-            <aside className="sidebar">
-              <button className="btn-new-research" onClick={handleNewResearch}>
-                <i className="fa-solid fa-plus"></i> New Research
-              </button>
-
-              {/* Quick Actions */}
-              <div>
-                <div className="sidebar-group-title">Quick Actions</div>
-                <div className="quick-actions-list">
-                  <button className="quick-action-btn" onClick={() => setQuestion('Summarize Top 5 key paper findings')}>
-                    <i className="fa-solid fa-bolt" style={{ color: 'var(--warning)' }}></i> Summarize Top 5
-                  </button>
-                  <button className="quick-action-btn" onClick={() => setTopK(10)}>
-                    <i className="fa-solid fa-magnifying-glass-plus" style={{ color: 'var(--primary)' }}></i> Expand Context 10
-                  </button>
-                  <button className="quick-action-btn" onClick={() => setQuestion('Summarize methodology section')}>
-                    <i className="fa-solid fa-file-lines" style={{ color: 'var(--success)' }}></i> Summarize Section
-                  </button>
-                  <button className="quick-action-btn" onClick={() => setActiveTab('evaluate')}>
-                    <i className="fa-solid fa-chart-line" style={{ color: 'var(--accent)' }}></i> Compare Runs
-                  </button>
-                  <button className="quick-action-btn" onClick={() => alert('Exporting results...')}>
-                    <i className="fa-solid fa-download" style={{ color: 'var(--text-muted)' }}></i> Export Results
-                  </button>
-                </div>
-              </div>
-
-              {/* Search History */}
-              <div style={{ flex: 1 }}>
-                <div className="sidebar-group-title">History</div>
-                <div className="history-list">
-                  {history.map((h) => (
-                    <div 
-                      key={h.id} 
-                      className={`history-item ${question === h.query ? 'active' : ''}`}
-                      onClick={() => { setQuestion(h.query); handleSearch(); }}
-                    >
-                      <div className="history-title">{h.query}</div>
-                      <div className="history-meta">{h.time}</div>
-                    </div>
-                  ))}
-                </div>
-                <button className="btn-view-all-history" onClick={() => setActiveTab('history')}>
-                  View all history <i className="fa-solid fa-arrow-right"></i>
-                </button>
-              </div>
-
-              {/* Theme Toggle Button at Bottom */}
-              <button className="quick-action-btn" onClick={toggleTheme} style={{ justifyContent: 'center' }}>
-                <i className={theme === 'light' ? "fa-solid fa-sun" : "fa-solid fa-moon"}></i>
-                {theme === 'light' ? 'Light Mode' : 'Dark Mode'}
-              </button>
-            </aside>
-
-            {/* Main Workspace Area */}
-            <main className="workspace">
-              {activeTab === 'search' && (
-                <>
-                  {/* Search Card */}
-                  <div className="search-box-card">
-                    <div className="search-header-top">
-                      <div className="search-title">
-                        What do you want to research? <span className="badge-tips"><i className="fa-solid fa-lightbulb"></i> Tips</span>
-                      </div>
-                      <button className="btn-advanced-toggle">
-                        Advanced <i className="fa-solid fa-chevron-down"></i>
-                      </button>
-                    </div>
-
-                    <form onSubmit={handleSearch} className="search-input-wrapper">
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        className="search-input"
-                        value={question}
-                        onChange={(e) => setQuestion(e.target.value)}
-                        placeholder="Ask a question about your research papers..."
-                      />
-                      {question && (
-                        <button type="button" className="icon-btn" onClick={() => setQuestion('')} style={{ border: 'none' }}>
-                          <i className="fa-solid fa-xmark"></i>
-                        </button>
-                      )}
-                      <button type="submit" className="btn-search-primary" disabled={isSearching}>
-                        {isSearching ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-magnifying-glass"></i>}
-                        Search Papers
-                      </button>
-                    </form>
-
-                    {/* Filter Controls */}
-                    <div className="filter-bar">
-                      <select className="filter-select">
-                        <option>Filters</option>
-                      </select>
-                      <select className="filter-select">
-                        <option>Year: 2021–2025</option>
-                        <option>Year: 2024</option>
-                        <option>Year: 2023</option>
-                      </select>
-                      <select className="filter-select">
-                        <option>Venue</option>
-                        <option>arXiv</option>
-                        <option>ACL</option>
-                        <option>EMNLP</option>
-                      </select>
-                      <select className="filter-select">
-                        <option>Author</option>
-                      </select>
-                      <button className="btn-clear-filters" onClick={() => setQuestion('')}>Clear</button>
-                    </div>
-                  </div>
-
-                  {/* 3-Column Content Layout */}
-                  <div className="dashboard-grid">
-                    {/* Middle-Left: Retrieved Sources */}
-                    <div className="card">
-                      <div className="card-header">
-                        <div className="card-title">
-                          Retrieved Sources ({sources.length})
-                        </div>
-                      </div>
-
-                      <div className="source-cards-list">
-                        {sources.length === 0 ? (
-                          <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                            <i className="fa-solid fa-folder-open" style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.4 }}></i>
-                            <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px', color: 'var(--text-main)' }}>No Sources Retrieved Yet</div>
-                            <div style={{ fontSize: '12px' }}>Upload a PDF in the Library tab or type a question above.</div>
-                          </div>
-                        ) : (
-                          sources.map((src, idx) => (
-                            <div key={idx} className="source-item-card">
-                              <div className="source-num-badge">{idx + 1}</div>
-                              <div className="source-content">
-                                <div className="source-head">
-                                  <div className="source-paper-title">{src.title || src.source}</div>
-                                  <i className="fa-regular fa-bookmark" style={{ cursor: 'pointer', color: 'var(--text-subtle)' }}></i>
-                                </div>
-                                <div className="source-authors">{src.authors || 'Research Authors'}</div>
-                                <div className="source-snippet">{src.text}</div>
-                                <div className="source-actions-bar">
-                                  <button className="btn-chip"><i className="fa-solid fa-arrow-up-right-from-square"></i> View Paper</button>
-                                  <button className="btn-chip"><i className="fa-solid fa-expand"></i> Expand Context</button>
-                                  <button className="btn-chip"><i className="fa-solid fa-quote-left"></i> Cite</button>
-                                  <div className="badge-relevance">
-                                    Relevance {( (src.relevance_score || 0.94) * 100 ).toFixed(0)}%
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Middle-Center: AI Research Summary */}
-                    <div className="card">
-                      <div className="card-header">
-                        <div className="card-title">AI Research Summary</div>
-                        <div className="summary-badge-llm">
-                          <i className="fa-solid fa-robot"></i> {llmName}
-                        </div>
-                      </div>
-
-                      <div className="summary-text-body">
-                        {isSearching && !aiAnswer ? (
-                          <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                            <i className="fa-solid fa-spinner fa-spin mr-2"></i> Synthesizing paper insights & evaluating grounding...
-                          </div>
-                        ) : aiAnswer ? (
-                          aiAnswer
-                        ) : (
-                          <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                            <i className="fa-solid fa-brain" style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.4 }}></i>
-                            <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px', color: 'var(--text-main)' }}>Ready for Research</div>
-                            <div style={{ fontSize: '12px' }}>Ask a question above to generate an AI research synthesis.</div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Cited Sources List */}
-                      {sources.length > 0 && (
-                        <div className="summary-sources-box">
-                          <div className="summary-sources-title">Sources</div>
-                          <div className="summary-source-chip-list">
-                            {sources.slice(0, 3).map((src, i) => (
-                              <div key={i} className="summary-source-item">
-                                <span className="source-num-badge" style={{ width: '18px', height: '18px', fontSize: '10px' }}>{i + 1}</span>
-                                <span>{src.title || src.source}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* AI Action Grid */}
-                      <div className="action-grid-buttons">
-                        <button className="btn-action-purple" onClick={handleSearch}>
-                          <i className="fa-solid fa-bolt"></i> Summarize
-                        </button>
-                        <button className="btn-action-outline" onClick={() => setTopK(10)}>
-                          <i className="fa-solid fa-expand"></i> Expand Context
-                        </button>
-                        <button className="btn-action-outline" onClick={handleFollowUp}>
-                          <i className="fa-solid fa-comments"></i> Ask Follow-up
-                        </button>
-                        <button className="btn-action-outline" onClick={handleExport}>
-                          <i className="fa-solid fa-download"></i> Export
-                        </button>
-                      </div>
-
-                      {/* Grounding Status Bar */}
-                      <div className="grounding-status-bar">
-                        <i className="fa-solid fa-check"></i>
-                        <span>Grounded in {sources.length} sources</span>
-                        <span style={{ marginLeft: 'auto' }}>Confidence: {confidence > 0.8 ? 'High' : 'Medium'}</span>
-                      </div>
-                    </div>
-
-                    {/* Right Panel: RAG Controls & Analytics */}
-                    <div className="right-panel">
-                      {/* RAG Controls */}
-                      <div className="card">
-                        <div className="card-header">
-                          <div className="card-title">RAG Controls</div>
-                          <i className="fa-solid fa-chevron-up" style={{ color: 'var(--text-subtle)' }}></i>
-                        </div>
-
-                        <div className="control-group">
-                          <div className="control-label">Retrieval Strategy</div>
-                          <select 
-                            className="control-select" 
-                            value={retrievalStrategy} 
-                            onChange={(e) => setRetrievalStrategy(e.target.value)}
-                          >
-                            <option value="hybrid">Hybrid (Vector + BM25)</option>
-                            <option value="dense">Dense Only (Qdrant Vector)</option>
-                            <option value="sparse">Sparse Only (BM25)</option>
-                          </select>
-                        </div>
-
-                        <div className="control-group">
-                          <div className="control-label">
-                            <span>Top K</span> <span>{topK}</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            className="control-slider" 
-                            min="1" max="20" 
-                            value={topK} 
-                            onChange={(e) => setTopK(Number(e.target.value))} 
-                          />
-                        </div>
-
-                        <div className="control-group">
-                          <div className="control-label">
-                            <span>Context Limit (tokens)</span> <span>{contextLimit}</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            className="control-slider" 
-                            min="500" max="16000" step="500"
-                            value={contextLimit} 
-                            onChange={(e) => setContextLimit(Number(e.target.value))} 
-                          />
-                        </div>
-
-                        <div className="control-group">
-                          <div className="control-label">
-                            <span>Temperature</span> <span>{temperature}</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            className="control-slider" 
-                            min="0" max="1" step="0.1"
-                            value={temperature} 
-                            onChange={(e) => setTemperature(Number(e.target.value))} 
-                          />
-                        </div>
-                      </div>
-
-                      {/* Retrieval Overview & Latency Chart */}
-                      <div className="card">
-                        <div className="card-header">
-                          <div className="card-title">Retrieval Overview</div>
-                          <i className="fa-solid fa-info-circle" style={{ color: 'var(--text-subtle)' }}></i>
-                        </div>
-
-                        <div className="stats-row">
-                          <div className="stat-box">
-                            <div className="stat-value">{sources.length}</div>
-                            <div className="stat-label">Sources</div>
-                          </div>
-                          <div className="stat-box">
-                            <div className="stat-value">{sources.length > 0 ? Math.min(sources.length, topK) : 0}</div>
-                            <div className="stat-label">Used in Context</div>
-                          </div>
-                          <div className="stat-box">
-                            <div className="stat-value">{latency}s</div>
-                            <div className="stat-label">Latency</div>
-                          </div>
-                        </div>
-
-                        {/* Latency Chart SVG */}
-                        <div className="latency-chart-box">
-                          <svg width="100%" height="100%" viewBox="0 0 280 80">
-                            <polyline
-                              fill="none"
-                              stroke="#6366f1"
-                              strokeWidth="3"
-                              points={`0,${80 - runLatencies[0]*40} 70,${80 - runLatencies[1]*40} 140,${80 - runLatencies[2]*40} 210,${80 - runLatencies[3]*40} 280,${80 - runLatencies[4]*40}`}
-                            />
-                            {runLatencies.map((val, i) => (
-                              <circle key={i} cx={i * 70} cy={80 - val * 40} r="4" fill="#4f46e5" />
-                            ))}
-                          </svg>
-                        </div>
-
-                        <div className="relevance-scale">
-                          <span>Low</span>
-                          <div className="scale-bar"></div>
-                          <span>High Relevance</span>
-                        </div>
-                      </div>
-
-                      {/* Run Comparison Table */}
-                      <div className="card">
-                        <div className="card-header">
-                          <div className="card-title">Run Comparison</div>
-                          <button className="btn-clear-filters" onClick={() => alert('Starting new comparison run')}>New Comparison</button>
-                        </div>
-
-                        <table className="comparison-table">
-                          <thead>
-                            <tr>
-                              <th>Metric</th>
-                              <th>Run A (Top K=5)</th>
-                              <th>Run B (Top K=10)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              <td>Retrieval Precision</td>
-                              <td>82%</td>
-                              <td><strong>91%</strong></td>
-                            </tr>
-                            <tr>
-                              <td>Answer Faithfulness</td>
-                              <td>89%</td>
-                              <td><strong>94%</strong></td>
-                            </tr>
-                            <tr>
-                              <td>Latency</td>
-                              <td>1.21s</td>
-                              <td>1.83s</td>
-                            </tr>
-                            <tr>
-                              <td>Used Chunks</td>
-                              <td>5</td>
-                              <td>10</td>
-                            </tr>
-                          </tbody>
-                        </table>
-
-                        <div className="winner-badge">
-                          <i className="fa-solid fa-check"></i> Better overall
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Library Tab */}
-              {activeTab === 'library' && (
-                <div className="card">
-                  <div className="card-header">
-                    <div className="card-title"><i className="fa-solid fa-book-open"></i> Research Paper Library</div>
-                  </div>
-
-                  {ingestStatus && (
-                    <div style={{ padding: '12px', borderRadius: '8px', marginBottom: '16px', background: 'var(--primary-subtle)', color: 'var(--primary)', fontWeight: '600' }}>
-                      {ingestStatus.text}
-                    </div>
-                  )}
-
-                  <div style={{ border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '30px', textAlign: 'center', marginBottom: '20px' }}>
-                    <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '32px', color: 'var(--primary)', marginBottom: '12px' }}></i>
-                    <div style={{ fontWeight: '700', fontSize: '15px' }}>Upload Research Papers (PDF)</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>On-Device Embeddings via FastEmbed (BAAI/bge-small-en-v1.5)</div>
-                    <input 
-                      type="file" 
-                      accept=".pdf" 
-                      onChange={(e) => handleUpload(e.target.files[0])} 
-                      style={{ display: 'none' }} 
-                      id="pdf-file-input" 
-                    />
-                    <label htmlFor="pdf-file-input" className="btn-search-primary" style={{ display: 'inline-flex', cursor: 'pointer' }}>
-                      Select PDF File
-                    </label>
-                  </div>
-
-                  <div className="summary-sources-title" style={{ marginBottom: '12px' }}>Ingested Papers ({documents.length})</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {documents.map((doc, idx) => (
-                      <div key={idx} className="source-item-card" style={{ alignItems: 'center' }}>
-                        <i className="fa-regular fa-file-pdf" style={{ fontSize: '24px', color: 'var(--danger)' }}></i>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: '700', fontSize: '14px' }}>{doc.filename}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{doc.chunks !== undefined ? doc.chunks : doc.chunk_count} chunks indexed in Qdrant</div>
-                        </div>
-                        <button className="btn-chip" onClick={() => alert(`Chunks count: ${doc.chunks !== undefined ? doc.chunks : doc.chunk_count}`)}>View Chunks</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Summarize / Evaluate / History Tabs */}
-              {activeTab === 'evaluate' && (
-                <div className="card">
-                  <div className="card-header">
-                    <div className="card-title"><i className="fa-solid fa-chart-column"></i> RAG Evaluation & Benchmarks</div>
-                  </div>
-                  <p style={{ color: 'var(--text-muted)' }}>DeepEval & Ragas evaluation benchmarks for precision, recall, and grounding faithfulness.</p>
-                </div>
-              )}
-            </main>
+          {/* Session Documents Count Bar */}
+          <div className="docs-banner">
+            <div>
+              <i className="fa-solid fa-file-pdf" style={{ marginRight: '6px' }}></i>
+              Active Papers: <strong>{documents.length}</strong>
+            </div>
+            <div style={{ cursor: 'pointer' }} onClick={() => setShowSettings(true)}>
+              Tap <strong>+</strong> below to ingest PDF <i className="fa-solid fa-arrow-down" style={{ fontSize: '10px', marginLeft: '4px' }}></i>
+            </div>
           </div>
 
-          {/* Footer Status Bar */}
-          <footer className="footer-bar">
-            <div className="status-pill">
-              <div className="status-dot"></div> System Status: All Good
+          {/* Scrollable Messages Stream */}
+          <div className="chat-messages">
+            {messages.map((msg) => {
+              if (msg.role === 'system') {
+                return (
+                  <div key={msg.id} className="system-event-card">
+                    <i className="fa-solid fa-circle-info" style={{ color: 'var(--primary)' }}></i>
+                    <span>{msg.content}</span>
+                  </div>
+                );
+              }
+
+              const isUser = msg.role === 'user';
+              return (
+                <div key={msg.id} className={`chat-message-group ${isUser ? 'user' : 'assistant'}`}>
+                  <div className="chat-bubble">
+                    {msg.searching && !msg.content ? (
+                      <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
+                        <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
+                        Searching papers & generating response...
+                      </span>
+                    ) : (
+                      <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                    )}
+
+                    {/* Sources Accordion inside AI Bubble */}
+                    {!isUser && msg.sources && msg.sources.length > 0 && (
+                      <div className="sources-accordion">
+                        <button className="sources-toggle-btn" onClick={() => toggleSources(msg.id)}>
+                          <i className={`fa-solid ${showSourcesForMsg[msg.id] ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
+                          📚 Cited {msg.sources.length} Research Paper Sources
+                        </button>
+
+                        {showSourcesForMsg[msg.id] && (
+                          <div>
+                            {msg.sources.map((src, i) => (
+                              <div key={i} className="source-chunk-card">
+                                <div className="source-chunk-title">
+                                  #{i + 1} {src.title || src.source}
+                                </div>
+                                <div style={{ fontSize: '11px', opacity: 0.85 }}>{src.text}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Ingestion Toast Status Above Input */}
+          {ingestToast && (
+            <div className="ingest-toast">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {ingestToast.type === 'loading' && <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--primary)' }}></i>}
+                <span>{ingestToast.text}</span>
+              </div>
             </div>
-            <div>
-              Vector DB: Qdrant | LLM: {llmName} | Embedding Model: {embeddingModel}
+          )}
+
+          {/* Quick Suggestion Chips */}
+          <div className="quick-prompts">
+            <button className="prompt-chip" onClick={() => setQuestion('Summarize top findings of the paper')}>
+              💡 Top Findings
+            </button>
+            <button className="prompt-chip" onClick={() => setQuestion('Explain the core methodology')}>
+              🔬 Methodology
+            </button>
+            <button className="prompt-chip" onClick={() => setQuestion('What dataset and metrics were used?')}>
+              📊 Datasets & Results
+            </button>
+          </div>
+
+          {/* Bottom Chat Input Bar with + Ingestion Button */}
+          <form onSubmit={handleSendMessage} className="chat-input-bar">
+            {/* + Button for PDF Ingestion */}
+            <button
+              type="button"
+              className="plus-ingest-btn"
+              onClick={handlePlusClick}
+              title="Ingest Research PDF"
+              disabled={uploading}
+            >
+              {uploading ? (
+                <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '16px' }}></i>
+              ) : (
+                <i className="fa-solid fa-plus"></i>
+              )}
+            </button>
+
+            {/* Chat Text Input */}
+            <textarea
+              className="chat-textarea"
+              rows="1"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder="Ask a question or tap + for PDF..."
+            />
+
+            {/* Send Message Button */}
+            <button
+              type="submit"
+              className="send-msg-btn"
+              disabled={!question.trim() || isSearching}
+              title="Send Message"
+            >
+              <i className="fa-solid fa-arrow-up"></i>
+            </button>
+          </form>
+
+          {/* Settings Slide-Up Drawer */}
+          {showSettings && (
+            <div className="drawer-overlay" onClick={() => setShowSettings(false)}>
+              <div className="drawer-content" onClick={(e) => e.stopPropagation()}>
+                <div className="drawer-header">
+                  <span><i className="fa-solid fa-sliders" style={{ color: 'var(--primary)', marginRight: '8px' }}></i> RAG & Document Settings</span>
+                  <button className="icon-btn" onClick={() => setShowSettings(false)}>
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+
+                <div className="control-group">
+                  <div className="control-label">Retrieval Strategy</div>
+                  <select 
+                    className="control-select"
+                    value={retrievalStrategy}
+                    onChange={(e) => setRetrievalStrategy(e.target.value)}
+                  >
+                    <option value="hybrid">Hybrid (Vector + BM25 RRF)</option>
+                    <option value="dense">Dense Only (Qdrant Vector)</option>
+                    <option value="sparse">Sparse Only (BM25 Lexical)</option>
+                  </select>
+                </div>
+
+                <div className="control-group">
+                  <div className="control-label">
+                    <span>Top K Retrieved Chunks</span> <span>{topK}</span>
+                  </div>
+                  <input 
+                    type="range"
+                    className="control-slider"
+                    min="1" max="20"
+                    value={topK}
+                    onChange={(e) => setTopK(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="control-group">
+                  <div className="control-label">
+                    <span>Context Limit (tokens)</span> <span>{contextLimit}</span>
+                  </div>
+                  <input 
+                    type="range"
+                    className="control-slider"
+                    min="500" max="16000" step="500"
+                    value={contextLimit}
+                    onChange={(e) => setContextLimit(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="control-group">
+                  <div className="control-label">
+                    <span>Temperature</span> <span>{temperature}</span>
+                  </div>
+                  <input 
+                    type="range"
+                    className="control-slider"
+                    min="0" max="1" step="0.1"
+                    value={temperature}
+                    onChange={(e) => setTemperature(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="control-group">
+                  <div className="control-label">Ingested Papers in Session ({documents.length})</div>
+                  {documents.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No papers uploaded in this session yet.</div>
+                  ) : (
+                    documents.map((doc, idx) => (
+                      <div key={idx} className="doc-item-row">
+                        <div style={{ fontSize: '13px', fontWeight: '600' }}>📄 {doc.filename}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{doc.chunks !== undefined ? doc.chunks : doc.chunk_count} chunks</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <button 
+                  className="send-msg-btn"
+                  style={{ width: '100%', borderRadius: '12px', marginTop: '10px' }}
+                  onClick={() => setShowSettings(false)}
+                >
+                  Done
+                </button>
+              </div>
             </div>
-            <div>v1.0.0</div>
-          </footer>
+          )}
         </div>
       );
     }
