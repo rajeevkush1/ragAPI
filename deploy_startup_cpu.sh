@@ -50,9 +50,8 @@ fi
 
 
 
-# 5. Spin up Docker Compose stack (no-cache build for latest UI)
+# 5. Spin up Docker Compose stack (force recreate for latest volume mounts)
 echo "Starting Docker Compose services (CPU mode)..."
-docker compose -f docker-compose-cpu.yml build --no-cache
-docker compose -f docker-compose-cpu.yml up -d
+docker compose -f docker-compose-cpu.yml up -d --force-recreate --build
 
 echo "System provisioning (CPU Mode) completed at $(date)"
