@@ -66,6 +66,7 @@ services:
     volumes:
       - ./pdfs:/app/pdfs
       - ./parsed:/app/parsed
+      - ./index.html:/app/index.html
     environment:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
