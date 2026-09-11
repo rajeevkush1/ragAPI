@@ -13,8 +13,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install dependencies (use --no-cache-dir to keep image slim)
-RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    python -m pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download and cache FastEmbed model to bake it into the image
 RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-small-en-v1.5')"
