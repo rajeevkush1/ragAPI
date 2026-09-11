@@ -39,6 +39,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_event():
+    config.logger.info("Pre-warming FastEmbed model at startup...")
+    try:
+        from ingest import get_embed_model
+        await asyncio.to_thread(get_embed_model, config.EMBED_MODEL)
+        config.logger.info("FastEmbed model pre-warmed successfully!")
+    except Exception as exc:
+        config.logger.warning(f"FastEmbed pre-warm notice: {exc}")
+
 _checkpointer = MemorySaver()
 _graph = build_agent_graph(checkpointer=_checkpointer)
 

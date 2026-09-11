@@ -647,7 +647,12 @@
             method: 'POST',
             body: formData,
           });
-          const data = await res.json();
+          
+          let data = {};
+          try {
+            data = await res.json();
+          } catch(e) {}
+
           if (res.ok) {
             const item = (data.results && data.results[0]) || {};
             const count = item.chunks !== undefined ? item.chunks : (data.chunk_count || 0);
@@ -664,14 +669,29 @@
             setIngestToast({ text: `✅ "${file.name}" ingested (${count} chunks)`, type: 'success' });
             fetchDocuments(sessionId);
           } else {
-            setIngestToast({ text: `Error: ${data.detail || 'Upload failed'}`, type: 'error' });
+            const errDetail = data.detail || (data.results && data.results[0] && data.results[0].error) || 'Upload failed';
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === uploadMsgId
+                  ? { ...m, content: `❌ Ingestion failed for "${file.name}": ${errDetail}` }
+                  : m
+              )
+            );
+            setIngestToast({ text: `Error: ${errDetail}`, type: 'error' });
           }
         } catch (err) {
-          setIngestToast({ text: 'Error connecting to ingestion server', type: 'error' });
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === uploadMsgId
+                ? { ...m, content: `❌ Ingestion error: Server restarted or took too long processing "${file.name}". Please try uploading again.` }
+                : m
+            )
+          );
+          setIngestToast({ text: 'Error connecting to ingestion server. Retrying...', type: 'error' });
         } finally {
           setUploading(false);
           if (e.target) e.target.value = '';
-          setTimeout(() => setIngestToast(null), 4000);
+          setTimeout(() => setIngestToast(null), 5000);
         }
       };
 

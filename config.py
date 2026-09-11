@@ -54,10 +54,15 @@ QDRANT_GRPC_PORT  = int(os.getenv("QDRANT_GRPC_PORT", "6334"))
 QDRANT_URL        = f"http://{QDRANT_HOST}:{QDRANT_PORT}"
 COLLECTION_NAME   = os.getenv("QDRANT_COLLECTION", "ai_research")
 
+# Limit ONNX/OpenMP thread allocation to prevent peak RAM spikes/OOM on CPU VMs
+os.environ["OMP_NUM_THREADS"] = os.getenv("OMP_NUM_THREADS", "2")
+os.environ["MKL_NUM_THREADS"] = os.getenv("MKL_NUM_THREADS", "2")
+os.environ["OPENBLAS_NUM_THREADS"] = os.getenv("OPENBLAS_NUM_THREADS", "2")
+
 # ── Embeddings ────────────────────────────────────────────────────────────────
 # BGE-Small-en-v1.5: 384-dim, fast and efficient local embedding
 EMBED_MODEL       = os.getenv("EMBED_MODEL", "BAAI/bge-small-en-v1.5")
-EMBED_BATCH_SIZE  = int(os.getenv("EMBED_BATCH_SIZE", "32"))   # lower to reduce peak memory (prevent bad allocation)
+EMBED_BATCH_SIZE  = int(os.getenv("EMBED_BATCH_SIZE", "16"))   # lower to 16 to reduce peak memory
 _embed_parallel   = os.getenv("EMBED_PARALLEL")
 EMBED_PARALLEL    = int(_embed_parallel) if _embed_parallel is not None else None
 
