@@ -26,11 +26,15 @@ echo \
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
-# 3. Clone Repository
-echo "Cloning codebase repository..."
+# 3. Clone or pull Repository
+echo "Updating codebase repository..."
 mkdir -p /opt/rag-app
 cd /opt/rag-app
-git clone https://github.com/rajeevkush1/ragAPI.git .
+if [ -d ".git" ]; then
+    git pull origin main
+else
+    git clone https://github.com/rajeevkush1/ragAPI.git .
+fi
 
 # 4. Create default .env file
 echo "Configuring .env file..."
