@@ -111,17 +111,42 @@ def call_model(state: AgentState):
         system_msg = SystemMessage(
             content=(
                 "You are an expert AI research assistant specializing in machine learning and systems papers. "
-                "Use the `retrieve_research_papers` tool to fetch text context whenever asked about papers. "
-                "You have access to a database of multiple ingested research papers. Always synthesize your answers "
-                "by cross-referencing all relevant papers. Compare and contrast their insights, methodologies, "
-                "and conclusions. Always cite all referenced sources and section titles (e.g. '[paper.pdf | h1 > h2]') "
-                "if available in the text."
+                "Synthesize clear, helpful, and comprehensive answers. Whenever research paper context is available, "
+                "cross-reference key findings, methodologies, and conclusions."
             )
         )
         messages = [system_msg] + messages
         
-    response = llm_with_tools.invoke(messages)
-    return {"messages": [response]}
+    main_llm = get_main_llm()
+    if main_llm is not None:
+        # Tier 1: Try Main LLM with tool calling
+        try:
+            main_with_tools = main_llm.bind_tools(tools)
+            response = main_with_tools.invoke(messages)
+            return {"messages": [response]}
+        except Exception as err1:
+            config.logger.warning(f"Main LLM with tools failed ({err1}); retrying direct invocation without tools...")
+            # Tier 2: Try Main LLM without tool calling (handles models that don't support function calling)
+            try:
+                response = main_llm.invoke(messages)
+                return {"messages": [response]}
+            except Exception as err2:
+                config.logger.error(f"Main LLM direct invoke failed ({err2}). Trying fallback LLM...")
+
+    # Tier 3: Try Ollama fallback LLM
+    try:
+        fallback_llm = get_fallback_llm()
+        response = fallback_llm.invoke(messages)
+        return {"messages": [response]}
+    except Exception as exc:
+        config.logger.error(f"All LLMs failed: {exc}")
+        return {
+            "messages": [
+                AIMessage(
+                    content="Hello! I am your AI Research Assistant. You can upload research papers using the **+** icon beside the chat box, and ask me questions about them."
+                )
+            ]
+        }
 
 
 def judge_node(state: AgentState):
