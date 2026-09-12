@@ -64,17 +64,22 @@ def local_hybrid_retrieve(
         )
 
     # 3. Query local Qdrant instance for dense candidates
-    qdrant = QdrantClient(url=config.QDRANT_URL)
-    candidate_k = max(top_k * 3, 15)
-    response = qdrant.query_points(
-        collection_name=config.COLLECTION_NAME,
-        query=q_vec,
-        query_filter=query_filter,
-        limit=candidate_k,
-        score_threshold=config.SCORE_THRESH,
-        with_payload=True
-    )
-    results = response.points
+    try:
+        qdrant = QdrantClient(url=config.QDRANT_URL, timeout=5.0)
+        candidate_k = max(top_k * 3, 15)
+        response = qdrant.query_points(
+            collection_name=config.COLLECTION_NAME,
+            query=q_vec,
+            query_filter=query_filter,
+            limit=candidate_k,
+            score_threshold=config.SCORE_THRESH,
+            with_payload=True
+        )
+        results = response.points
+    except Exception as exc:
+        config.logger.warning(f"Qdrant query notice: {exc}")
+        return []
+        
     if not results:
         return []
 
