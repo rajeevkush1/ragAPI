@@ -530,7 +530,12 @@
       const [contextLimit, setContextLimit] = useState(4000);
       const [temperature, setTemperature] = useState(0.2);
       const [embeddingModel, setEmbeddingModel] = useState('BAAI/bge-small-en-v1.5');
-      const [llmName, setLlmName] = useState('Nemotron / Ollama');
+      const [llmName, setLlmName] = useState('OpenRouter / Gemini / Groq');
+      
+      // LLM Provider & Key State
+      const [provider, setProvider] = useState(() => localStorage.getItem('rag_provider') || 'openrouter');
+      const [apiKey, setApiKey] = useState(() => localStorage.getItem('rag_api_key') || '');
+      const [showKeyPassword, setShowKeyPassword] = useState(false);
       
       // Session & Ingestion State
       const generateSessionId = () => 'session-' + Math.random().toString(36).substring(2, 10);
@@ -724,6 +729,8 @@
           context_limit: contextLimit.toString(),
           temperature: temperature.toString()
         });
+        if (provider) queryParams.append('provider', provider);
+        if (apiKey) queryParams.append('api_key', apiKey.trim());
 
         const eventSource = new EventSource(`/query?${queryParams.toString()}`);
 
@@ -962,6 +969,50 @@
                   <button className="icon-btn" onClick={() => setShowSettings(false)}>
                     <i className="fa-solid fa-xmark"></i>
                   </button>
+                </div>
+
+                <div className="control-group">
+                  <div className="control-label">LLM Provider</div>
+                  <select 
+                    className="control-select"
+                    value={provider}
+                    onChange={(e) => {
+                      setProvider(e.target.value);
+                      localStorage.setItem('rag_provider', e.target.value);
+                    }}
+                  >
+                    <option value="openrouter">OpenRouter (Free / Multi-Model)</option>
+                    <option value="groq">Groq (Ultra-Fast Free Tier)</option>
+                    <option value="gemini">Google Gemini</option>
+                    <option value="nvidia">NVIDIA NIM</option>
+                    <option value="ollama">Ollama (Local Offline)</option>
+                  </select>
+                </div>
+
+                <div className="control-group">
+                  <div className="control-label">
+                    <span>API Key</span> 
+                    <span 
+                      style={{ cursor: 'pointer', fontSize: '11px', color: 'var(--primary)' }}
+                      onClick={() => setShowKeyPassword(!showKeyPassword)}
+                    >
+                      {showKeyPassword ? 'Hide' : 'Show'}
+                    </span>
+                  </div>
+                  <input 
+                    type={showKeyPassword ? "text" : "password"}
+                    className="control-select"
+                    style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px', boxSizing: 'border-box' }}
+                    placeholder={provider === 'groq' ? 'gsk_...' : provider === 'gemini' ? 'AIza...' : 'sk-or-v1-...'}
+                    value={apiKey}
+                    onChange={(e) => {
+                      setApiKey(e.target.value);
+                      localStorage.setItem('rag_api_key', e.target.value);
+                    }}
+                  />
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Leave empty to use server default environment key.
+                  </div>
                 </div>
 
                 <div className="control-group">

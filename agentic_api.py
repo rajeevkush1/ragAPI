@@ -61,6 +61,9 @@ class QueryRequest(BaseModel):
     top_k: int = Field(default=5)
     context_limit: int = Field(default=4000)
     temperature: float = Field(default=0.2)
+    provider: Optional[str] = Field(default=None)
+    api_key: Optional[str] = Field(default=None)
+    model: Optional[str] = Field(default=None)
 
 class QueryResponse(BaseModel):
     thread_id: str
@@ -138,7 +141,10 @@ async def _stream_graph(
     retrieval_strategy: str = "hybrid",
     top_k: int = 5,
     context_limit: int = 4000,
-    temperature: float = 0.2
+    temperature: float = 0.2,
+    provider: Optional[str] = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
 ) -> AsyncIterator[str]:
     """Async generator running the Agentic RAG graph and yielding SSE events."""
     config_dict = {
@@ -149,6 +155,9 @@ async def _stream_graph(
             "top_k": top_k,
             "context_limit": context_limit,
             "temperature": temperature,
+            "provider": provider,
+            "api_key": api_key,
+            "model": model,
         },
         "recursion_limit": 50,
     }
@@ -201,7 +210,30 @@ async def _stream_graph(
         return
     except Exception as exc:
         config.logger.error(f"[SSE Stream] Exception for thread_id '{thread_id}': {exc}")
-        yield _sse({"type": "error", "message": str(exc), "thread_id": thread_id})
+        err_str = str(exc)
+        err_lower = err_str.lower()
+        if any(k in err_lower for k in ["401", "invalid_api_key", "invalid api key", "unauthorized", "user not found", "authentication"]):
+            friendly_msg = (
+                "⚠️ **LLM API Key Authentication Error (401 - Invalid API Key)**\n\n"
+                "The configured API key was rejected by the LLM provider.\n\n"
+                "### 🔑 How to resolve:\n"
+                "1. Tap the **⚙️ Settings** icon in the upper-right corner of this chat.\n"
+                "2. Select your provider (**OpenRouter**, **Groq**, or **Google Gemini**) and paste your valid API Key.\n"
+                "3. Or add `OPENROUTER_API_KEY=your_key` (or `GROQ_API_KEY`, `GEMINI_API_KEY`) to your `.env` file.\n"
+                "4. Or run local Ollama (`ollama pull llama3.2:3b`) for offline model fallback.\n\n"
+                "*Document ingestion and vector search indexed in your session remain completely active!*"
+            )
+            yield _sse({"type": "token", "content": friendly_msg, "node": "agent"})
+            yield _sse({
+                "type": "done",
+                "final_answer": friendly_msg,
+                "sources": [],
+                "grounded": False,
+                "confidence": 0.0,
+                "latency": round(time.time() - start_time, 2)
+            })
+        else:
+            yield _sse({"type": "error", "message": err_str, "thread_id": thread_id})
         return
         
     # Retrieve final execution output from graph state
@@ -280,6 +312,9 @@ async def query_endpoint_get(
     top_k: int = 5,
     context_limit: int = 4000,
     temperature: float = 0.2,
+    provider: Optional[str] = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
 ):
     """Run the Agentic RAG pipeline using GET (useful for browser EventSource API)."""
     if not thread_id:
@@ -293,7 +328,10 @@ async def query_endpoint_get(
                 retrieval_strategy,
                 top_k,
                 context_limit,
-                temperature
+                temperature,
+                provider,
+                api_key,
+                model
             ),
             media_type="text/event-stream",
             headers={
@@ -311,7 +349,10 @@ async def query_endpoint_get(
             retrieval_strategy=retrieval_strategy,
             top_k=top_k,
             context_limit=context_limit,
-            temperature=temperature
+            temperature=temperature,
+            provider=provider,
+            api_key=api_key,
+            model=model
         )
         return await query_endpoint(req)
 
@@ -327,7 +368,10 @@ async def query_endpoint(req: QueryRequest):
                 req.retrieval_strategy,
                 req.top_k,
                 req.context_limit,
-                req.temperature
+                req.temperature,
+                req.provider,
+                req.api_key,
+                req.model
             ),
             media_type="text/event-stream",
             headers={

@@ -39,35 +39,68 @@ def get_fallback_llm():
     config.logger.info("Ollama is not running locally; skipping Ollama fallback.")
     return None
 
-def get_main_llm():
+def get_main_llm(api_key: str = None, provider: str = None, model: str = None):
     """
-    Instantiates OpenRouter as the primary LLM client.
+    Instantiates LLM client (OpenRouter, Groq, Gemini, Nvidia, or Ollama).
     """
     from langchain_openai import ChatOpenAI
     
-    # 1. Try env var API key or dynamic default key
-    k1 = "sk-or-v1-28c12b9d18cc651c"
-    k2 = "e96aea7c489c6f5701de94792dfb23529892d845d0589c"
-    openrouter_key = os.getenv("OPENROUTER_API_KEY") or (k1 + k2)
-    model_name = os.getenv("OPENROUTER_MODEL", "openrouter/free")
+    prov = (provider or os.getenv("LLM_PROVIDER") or "openrouter").lower().strip()
     
-    config.logger.info(f"Using OpenRouter LLM: '{model_name}'")
-    return ChatOpenAI(
-        model=model_name,
-        api_key=openrouter_key,
-        base_url="https://openrouter.ai/api/v1",
-        temperature=0.1,
-        default_headers={
-            "HTTP-Referer": "http://localhost:8000",
-            "X-Title": "Agentic RAG"
-        }
-    )
+    if prov == "groq":
+        key = api_key or os.getenv("GROQ_API_KEY")
+        model_name = model or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        config.logger.info(f"Using Groq LLM: '{model_name}'")
+        return ChatOpenAI(
+            model=model_name,
+            api_key=key or "dummy_key",
+            base_url="https://api.groq.com/openai/v1",
+            temperature=0.1,
+        )
+    elif prov == "gemini":
+        key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        model_name = model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        config.logger.info(f"Using Gemini LLM: '{model_name}'")
+        return ChatOpenAI(
+            model=model_name,
+            api_key=key or "dummy_key",
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            temperature=0.1,
+        )
+    elif prov == "nvidia":
+        key = api_key or os.getenv("NVIDIA_API_KEY")
+        model_name = model or os.getenv("NEMOTRON_MODEL", "nvidia/llama-3.1-nemotron-70b-instruct")
+        config.logger.info(f"Using Nvidia LLM: '{model_name}'")
+        return ChatOpenAI(
+            model=model_name,
+            api_key=key or "dummy_key",
+            base_url=config.NVIDIA_BASE_URL,
+            temperature=0.1,
+        )
+    else:
+        # Default: OpenRouter
+        k1 = "sk-or-v1-28c12b9d18cc651c"
+        k2 = "e96aea7c489c6f5701de94792dfb23529892d845d0589c"
+        openrouter_key = api_key or os.getenv("OPENROUTER_API_KEY") or (k1 + k2)
+        model_name = model or os.getenv("OPENROUTER_MODEL", "openrouter/free")
+        
+        config.logger.info(f"Using OpenRouter LLM: '{model_name}'")
+        return ChatOpenAI(
+            model=model_name,
+            api_key=openrouter_key,
+            base_url="https://openrouter.ai/api/v1",
+            temperature=0.1,
+            default_headers={
+                "HTTP-Referer": "http://localhost:8000",
+                "X-Title": "Agentic RAG"
+            }
+        )
 
 def get_llm():
     return get_main_llm()
 
-def get_llm_with_tools(tools_list):
-    main_llm = get_main_llm()
+def get_llm_with_tools(tools_list, api_key: str = None, provider: str = None, model: str = None):
+    main_llm = get_main_llm(api_key=api_key, provider=provider, model=model)
     if main_llm is not None:
         try:
             return main_llm.bind_tools(tools_list)
@@ -79,7 +112,7 @@ def get_llm_with_tools(tools_list):
 tools = [retrieve_research_papers]
 
 
-def call_model(state: AgentState):
+def call_model(state: AgentState, config_obj: dict = None):
     """Node that invokes the LLM with system guidance prepended."""
     messages = state.messages
     
@@ -93,19 +126,33 @@ def call_model(state: AgentState):
             )
         )
         messages = [system_msg] + messages
+
+    cfg_opts = config_obj.get("configurable", {}) if isinstance(config_obj, dict) else {}
+    api_key = cfg_opts.get("api_key")
+    provider = cfg_opts.get("provider")
+    model = cfg_opts.get("model")
         
-    llm_runner = get_llm_with_tools(tools) or get_main_llm()
+    llm_runner = get_llm_with_tools(tools, api_key=api_key, provider=provider, model=model)
     try:
         response = llm_runner.invoke(messages)
         return {"messages": [response]}
     except Exception as err:
         config.logger.warning(f"LLM tool-bind invoke failed ({err}); retrying direct invocation...")
         try:
-            direct_llm = get_main_llm()
+            direct_llm = get_main_llm(api_key=api_key, provider=provider, model=model)
             response = direct_llm.invoke(messages)
             return {"messages": [response]}
         except Exception as exc:
             config.logger.error(f"Direct LLM invoke failed: {exc}")
+            fallback_llm = get_fallback_llm()
+            if fallback_llm is not None:
+                try:
+                    config.logger.info("Using local Ollama fallback LLM...")
+                    response = fallback_llm.invoke(messages)
+                    return {"messages": [response]}
+                except Exception as f_err:
+                    config.logger.error(f"Fallback LLM failed: {f_err}")
+            raise exc
 
     return {
         "messages": [
@@ -116,11 +163,15 @@ def call_model(state: AgentState):
     }
 
 
-def judge_node(state: AgentState):
+def judge_node(state: AgentState, config_obj: dict = None):
     """
     Critic node evaluating whether the proposed answer is factually grounded in retrieved documents.
     """
     messages = state.messages
+    cfg_opts = config_obj.get("configurable", {}) if isinstance(config_obj, dict) else {}
+    api_key = cfg_opts.get("api_key")
+    provider = cfg_opts.get("provider")
+    model = cfg_opts.get("model")
     
     # 1. Find the proposed final AIMessage answer
     proposed_answer = ""
@@ -167,7 +218,7 @@ def judge_node(state: AgentState):
     )
     
     try:
-        main_llm = get_main_llm()
+        main_llm = get_main_llm(api_key=api_key, provider=provider, model=model)
         if main_llm is not None:
             response = main_llm.invoke([HumanMessage(content=prompt)])
             cleaned_content = response.content.strip().replace("```json", "").replace("```", "").strip()
