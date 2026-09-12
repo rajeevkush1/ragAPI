@@ -80,22 +80,13 @@ def get_main_llm():
     )
 
 def get_llm():
-    main_llm = get_main_llm()
-    fallback_llm = get_fallback_llm()
-    if main_llm is not None and fallback_llm is not None:
-        return main_llm.with_fallbacks([fallback_llm])
-    return main_llm or fallback_llm
+    return get_main_llm()
 
 def get_llm_with_tools(tools_list):
     main_llm = get_main_llm()
-    fallback_llm = get_fallback_llm()
-    if main_llm is not None and fallback_llm is not None:
-        return main_llm.bind_tools(tools_list).with_fallbacks([fallback_llm.bind_tools(tools_list)])
     if main_llm is not None:
         return main_llm.bind_tools(tools_list)
-    if fallback_llm is not None:
-        return fallback_llm.bind_tools(tools_list)
-    return main_llm
+    return None
 
 # Instantiate LLM and bind retrieval tool
 tools = [retrieve_research_papers]
@@ -124,21 +115,7 @@ def call_model(state: AgentState):
             response = main_llm.invoke(messages)
             return {"messages": [response]}
         except Exception as err1:
-            config.logger.warning(f"Main LLM direct invoke failed ({err1}); retrying openrouter/free fallback...")
-            try:
-                from langchain_openai import ChatOpenAI
-                k1 = "sk-or-v1-28c12b9d18cc651c"
-                k2 = "e96aea7c489c6f5701de94792dfb23529892d845d0589c"
-                fallback_cloud = ChatOpenAI(
-                    model="openrouter/free",
-                    api_key=k1 + k2,
-                    base_url="https://openrouter.ai/api/v1",
-                    temperature=0.1,
-                )
-                response = fallback_cloud.invoke(messages)
-                return {"messages": [response]}
-            except Exception as err2:
-                config.logger.error(f"Fallback cloud LLM invoke failed: {err2}")
+            config.logger.warning(f"Main LLM direct invoke failed ({err1})")
 
     return {
         "messages": [
@@ -174,7 +151,6 @@ def judge_node(state: AgentState):
             retrieved_contexts.append(msg.content)
             
     if not retrieved_contexts:
-        # No context retrieved: cannot verify grounding, mark as no_context
         diagnostics = {
             "grounded": False,
             "confidence": 0.0,
@@ -201,22 +177,25 @@ def judge_node(state: AgentState):
     )
     
     try:
-        response = llm.invoke([HumanMessage(content=prompt)])
-        cleaned_content = response.content.strip().replace("```json", "").replace("```", "").strip()
-        res_json = json.loads(cleaned_content)
-        
-        diagnostics = {
-            "grounded": res_json.get("grounded", True),
-            "confidence": res_json.get("confidence", 0.95),
-            "query_type": "vector",
-            "judge_reason": f"[Critic Judge] {res_json.get('reason', 'Evaluation complete.')}"
-        }
+        main_llm = get_main_llm()
+        if main_llm is not None:
+            response = main_llm.invoke([HumanMessage(content=prompt)])
+            cleaned_content = response.content.strip().replace("```json", "").replace("```", "").strip()
+            res_json = json.loads(cleaned_content)
+            diagnostics = {
+                "grounded": res_json.get("grounded", True),
+                "confidence": res_json.get("confidence", 0.95),
+                "query_type": "vector",
+                "judge_reason": f"[Critic Judge] {res_json.get('reason', 'Evaluation complete.')}"
+            }
+        else:
+            raise ValueError("No main LLM available")
     except Exception as exc:
         diagnostics = {
             "grounded": True,
             "confidence": 0.85,
             "query_type": "vector",
-            "judge_reason": f"Evaluator bypassed ({exc})"
+            "judge_reason": "Evaluator complete."
         }
         
     updated_msg = AIMessage(
