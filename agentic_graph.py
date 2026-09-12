@@ -114,15 +114,18 @@ tools = [retrieve_research_papers]
 
 def call_model(state: AgentState, config_obj: dict = None):
     """Node that invokes the LLM with system guidance prepended."""
-    messages = state.messages
+    messages = list(state.messages)
     
     # Prepend a guiding system prompt on the very first turn
     if not any(isinstance(m, SystemMessage) for m in messages):
         system_msg = SystemMessage(
             content=(
-                "You are an expert AI research assistant specializing in machine learning and systems papers. "
-                "Synthesize clear, helpful, and comprehensive answers. Whenever research paper context is available, "
-                "cross-reference key findings, methodologies, and conclusions."
+                "You are an expert AI research assistant. The user has uploaded PDF documents into the RAG vector store.\n\n"
+                "CRITICAL MANDATES:\n"
+                "1. Whenever the user asks ANY question about uploaded documents, PDFs, papers, emails, text, counts, or methodology, "
+                "you MUST use the `retrieve_research_papers` tool or synthesized document context to answer.\n"
+                "2. NEVER reply with 'no PDF attached', 'no document uploaded', or 'I cannot see the file' without searching document context first.\n"
+                "3. Provide accurate, factual answers grounded in the retrieved document text."
             )
         )
         messages = [system_msg] + messages
@@ -133,15 +136,14 @@ def call_model(state: AgentState, config_obj: dict = None):
     model = cfg_opts.get("model")
         
     llm_runner = get_llm_with_tools(tools, api_key=api_key, provider=provider, model=model)
+    response = None
     try:
         response = llm_runner.invoke(messages)
-        return {"messages": [response]}
     except Exception as err:
         config.logger.warning(f"LLM tool-bind invoke failed ({err}); retrying direct invocation...")
         try:
             direct_llm = get_main_llm(api_key=api_key, provider=provider, model=model)
             response = direct_llm.invoke(messages)
-            return {"messages": [response]}
         except Exception as exc:
             config.logger.error(f"Direct LLM invoke failed: {exc}")
             fallback_llm = get_fallback_llm()
@@ -149,10 +151,51 @@ def call_model(state: AgentState, config_obj: dict = None):
                 try:
                     config.logger.info("Using local Ollama fallback LLM...")
                     response = fallback_llm.invoke(messages)
-                    return {"messages": [response]}
                 except Exception as f_err:
                     config.logger.error(f"Fallback LLM failed: {f_err}")
-            raise exc
+                    raise exc
+            else:
+                raise exc
+
+    # Check if tool calls were returned or if auto-retrieval is needed for document questions
+    has_tool_call = hasattr(response, "tool_calls") and bool(response.tool_calls)
+    has_tool_msg = any(isinstance(m, ToolMessage) for m in messages)
+
+    if response and not has_tool_call and not has_tool_msg:
+        user_query = ""
+        for m in reversed(messages):
+            if isinstance(m, HumanMessage) and m.content:
+                user_query = m.content
+                break
+
+        if user_query:
+            try:
+                retrieved_context = retrieve_research_papers.invoke(user_query, config_obj or {})
+                if retrieved_context and "No relevant context found" not in retrieved_context:
+                    config.logger.info(f"Auto-retrieved context for query '{user_query}'")
+                    tool_call_id = f"auto_call_{int(time.time())}"
+                    tool_call_msg = AIMessage(
+                        content="",
+                        tool_calls=[{
+                            "name": "retrieve_research_papers",
+                            "args": {"query": user_query},
+                            "id": tool_call_id
+                        }]
+                    )
+                    tool_res_msg = ToolMessage(
+                        tool_call_id=tool_call_id,
+                        name="retrieve_research_papers",
+                        content=retrieved_context
+                    )
+                    direct_llm = get_main_llm(api_key=api_key, provider=provider, model=model)
+                    synth_messages = messages + [tool_call_msg, tool_res_msg]
+                    final_resp = direct_llm.invoke(synth_messages)
+                    return {"messages": [tool_call_msg, tool_res_msg, final_resp]}
+            except Exception as r_err:
+                config.logger.warning(f"Auto-retrieval attempt notice: {r_err}")
+
+    if response:
+        return {"messages": [response]}
 
     return {
         "messages": [

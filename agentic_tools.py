@@ -81,6 +81,18 @@ def local_hybrid_retrieve(
         return []
         
     if not results:
+        try:
+            scroll_res = qdrant.scroll(
+                collection_name=config.COLLECTION_NAME,
+                scroll_filter=query_filter,
+                limit=candidate_k,
+                with_payload=True
+            )
+            results = scroll_res[0]
+        except Exception:
+            return []
+
+    if not results:
         return []
 
     # Build candidates list
