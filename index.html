@@ -861,6 +861,11 @@
                         <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
                         Searching papers & generating response...
                       </span>
+                    ) : !msg.content ? (
+                      <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
+                        <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
+                        Thinking...
+                      </span>
                     ) : (
                       <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
                     )}

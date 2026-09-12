@@ -529,6 +529,15 @@ def list_documents(session_id: Optional[str] = None, thread_id: Optional[str] = 
             with_vectors=False
         )
         points = scroll_res[0]
+        if not points and scroll_filter is not None:
+            scroll_res = client.scroll(
+                collection_name=config.COLLECTION_NAME,
+                limit=1000,
+                with_payload=["source"],
+                with_vectors=False
+            )
+            points = scroll_res[0]
+
         sources = set()
         for p in points:
             if p.payload and "source" in p.payload:

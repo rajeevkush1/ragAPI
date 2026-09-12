@@ -80,11 +80,23 @@ def local_hybrid_retrieve(
         config.logger.warning(f"Qdrant query notice: {exc}")
         return []
         
+    if not results and query_filter is not None:
+        try:
+            response = qdrant.query_points(
+                collection_name=config.COLLECTION_NAME,
+                query=q_vec,
+                limit=candidate_k,
+                score_threshold=config.SCORE_THRESH,
+                with_payload=True
+            )
+            results = response.points
+        except Exception:
+            pass
+
     if not results:
         try:
             scroll_res = qdrant.scroll(
                 collection_name=config.COLLECTION_NAME,
-                scroll_filter=query_filter,
                 limit=candidate_k,
                 with_payload=True
             )
