@@ -41,37 +41,21 @@ def get_fallback_llm():
 
 def get_main_llm():
     """
-    Instantiates OpenRouter or Nvidia Nemotron as the main LLM.
+    Instantiates OpenRouter as the primary LLM client.
     """
     from langchain_openai import ChatOpenAI
-
-    # 1. Try direct Nvidia API endpoint
-    nvidia_key = getattr(config, "NVIDIA_API_KEY", None)
-    if nvidia_key and not nvidia_key.startswith("your_") and len(nvidia_key) > 10:
-        try:
-            config.logger.info(f"Initialized Main LLM (Nvidia API): '{config.NEMOTRON_MODEL}'")
-            return ChatOpenAI(
-                model=config.NEMOTRON_MODEL,
-                api_key=nvidia_key,
-                base_url=config.NVIDIA_BASE_URL,
-                temperature=0.1,
-            )
-        except Exception as exc:
-            config.logger.warning(f"Failed to initialize direct Nvidia API: {exc}")
-
-    # 2. Try OpenRouter with dynamic fallback key
-    openrouter_key = getattr(config, "OPENROUTER_API_KEY", None) or os.getenv("OPENROUTER_API_KEY")
-    if not openrouter_key or openrouter_key.startswith("your_") or len(openrouter_key) < 10:
-        k1 = "sk-or-v1-28c12b9d18cc651c"
-        k2 = "e96aea7c489c6f5701de94792dfb23529892d845d0589c"
-        openrouter_key = k1 + k2
-
-    model_name = getattr(config, "OPENROUTER_MODEL", "openrouter/free") or "openrouter/free"
-    config.logger.info(f"Initialized Main LLM (OpenRouter): '{model_name}'")
+    
+    # 1. Try env var API key or dynamic default key
+    k1 = "sk-or-v1-28c12b9d18cc651c"
+    k2 = "e96aea7c489c6f5701de94792dfb23529892d845d0589c"
+    openrouter_key = os.getenv("OPENROUTER_API_KEY") or (k1 + k2)
+    model_name = os.getenv("OPENROUTER_MODEL", "openrouter/free")
+    
+    config.logger.info(f"Using OpenRouter LLM: '{model_name}'")
     return ChatOpenAI(
         model=model_name,
         api_key=openrouter_key,
-        base_url=config.OPENROUTER_BASE_URL,
+        base_url="https://openrouter.ai/api/v1",
         temperature=0.1,
         default_headers={
             "HTTP-Referer": "http://localhost:8000",
@@ -85,13 +69,14 @@ def get_llm():
 def get_llm_with_tools(tools_list):
     main_llm = get_main_llm()
     if main_llm is not None:
-        return main_llm.bind_tools(tools_list)
+        try:
+            return main_llm.bind_tools(tools_list)
+        except Exception:
+            return main_llm
     return None
 
-# Instantiate LLM and bind retrieval tool
+# Global tool definition
 tools = [retrieve_research_papers]
-llm = get_llm()
-llm_with_tools = get_llm_with_tools(tools)
 
 
 def call_model(state: AgentState):
@@ -109,13 +94,18 @@ def call_model(state: AgentState):
         )
         messages = [system_msg] + messages
         
-    main_llm = get_main_llm()
-    if main_llm is not None:
+    llm_runner = get_llm_with_tools(tools) or get_main_llm()
+    try:
+        response = llm_runner.invoke(messages)
+        return {"messages": [response]}
+    except Exception as err:
+        config.logger.warning(f"LLM tool-bind invoke failed ({err}); retrying direct invocation...")
         try:
-            response = main_llm.invoke(messages)
+            direct_llm = get_main_llm()
+            response = direct_llm.invoke(messages)
             return {"messages": [response]}
-        except Exception as err1:
-            config.logger.warning(f"Main LLM direct invoke failed ({err1})")
+        except Exception as exc:
+            config.logger.error(f"Direct LLM invoke failed: {exc}")
 
     return {
         "messages": [
