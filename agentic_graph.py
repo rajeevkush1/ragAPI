@@ -18,15 +18,26 @@ from agentic_tools import retrieve_research_papers
 import config
 
 def get_fallback_llm():
-    """Returns the local Ollama fallback LLM instance."""
-    from langchain_ollama import ChatOllama
-    config.logger.info(f"Initialized Ollama fallback model: '{config.OLLAMA_MODEL}' at '{config.OLLAMA_BASE_URL}'")
-    return ChatOllama(
-        model=config.OLLAMA_MODEL,
-        base_url=config.OLLAMA_BASE_URL,
-        temperature=0.1,
-        client_kwargs={"timeout": config.OLLAMA_TIMEOUT},
-    )
+    """Returns the local Ollama fallback LLM instance ONLY if Ollama is actively running."""
+    try:
+        import urllib.request
+        url = f"{config.OLLAMA_BASE_URL.rstrip('/')}/api/tags"
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            if resp.status == 200:
+                from langchain_ollama import ChatOllama
+                config.logger.info(f"Ollama reachable. Initialized fallback: '{config.OLLAMA_MODEL}'")
+                return ChatOllama(
+                    model=config.OLLAMA_MODEL,
+                    base_url=config.OLLAMA_BASE_URL,
+                    temperature=0.1,
+                    client_kwargs={"timeout": config.OLLAMA_TIMEOUT},
+                )
+    except Exception:
+        pass
+    
+    config.logger.info("Ollama is not running locally; skipping Ollama fallback.")
+    return None
 
 def get_main_llm():
     """
@@ -69,29 +80,22 @@ def get_main_llm():
     )
 
 def get_llm():
-    """
-    Returns the resolved LLM runnable: Nemotron as main LLM with Ollama as fallback.
-    If no main cloud API key is present, defaults to Ollama directly.
-    """
-    fallback_llm = get_fallback_llm()
     main_llm = get_main_llm()
-
-    if main_llm is not None:
+    fallback_llm = get_fallback_llm()
+    if main_llm is not None and fallback_llm is not None:
         return main_llm.with_fallbacks([fallback_llm])
-    return fallback_llm
+    return main_llm or fallback_llm
 
 def get_llm_with_tools(tools_list):
-    """
-    Binds tools to main and fallback LLMs and configures runtime fallback.
-    """
-    fallback_llm = get_fallback_llm()
-    fallback_with_tools = fallback_llm.bind_tools(tools_list)
-    
     main_llm = get_main_llm()
+    fallback_llm = get_fallback_llm()
+    if main_llm is not None and fallback_llm is not None:
+        return main_llm.bind_tools(tools_list).with_fallbacks([fallback_llm.bind_tools(tools_list)])
     if main_llm is not None:
-        main_with_tools = main_llm.bind_tools(tools_list)
-        return main_with_tools.with_fallbacks([fallback_with_tools])
-    return fallback_with_tools
+        return main_llm.bind_tools(tools_list)
+    if fallback_llm is not None:
+        return fallback_llm.bind_tools(tools_list)
+    return main_llm
 
 # Instantiate LLM and bind retrieval tool
 tools = [retrieve_research_papers]
