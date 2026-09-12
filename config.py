@@ -87,7 +87,7 @@ NVIDIA_API_KEY    = os.getenv("NVIDIA_API_KEY")
 NVIDIA_BASE_URL   = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL   = os.getenv("OPENROUTER_MODEL", NEMOTRON_MODEL)
+OPENROUTER_MODEL   = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 OPENROUTER_BASE_URL= os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
 OLLAMA_BASE_URL   = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")

@@ -49,14 +49,12 @@ def get_main_llm():
         except Exception as exc:
             config.logger.warning(f"Failed to initialize direct Nvidia API: {exc}")
 
-    # 2. Try OpenRouter configured with Nemotron model
+    # 2. Try OpenRouter configured with free auto-router or preferred model
     openrouter_key = config.OPENROUTER_API_KEY
-    if openrouter_key and not openrouter_key.startswith("your_"):
+    if openrouter_key and not openrouter_key.startswith("your_") and len(openrouter_key) > 10:
         try:
-            model_name = config.OPENROUTER_MODEL
-            if "llama-3.3-70b" in model_name or "llama-3.1-nemotron-70b" in model_name:
-                model_name = "nvidia/nemotron-3.5-lightning:free"
-            config.logger.info(f"Initialized Main LLM (OpenRouter Nemotron): '{model_name}'")
+            model_name = config.OPENROUTER_MODEL or "openrouter/free"
+            config.logger.info(f"Initialized Main LLM (OpenRouter): '{model_name}'")
             return ChatOpenAI(
                 model=model_name,
                 api_key=openrouter_key,
@@ -64,11 +62,11 @@ def get_main_llm():
                 temperature=0.1,
                 default_headers={
                     "HTTP-Referer": "http://localhost:8000",
-                    "X-Title": "Agentic RAG Nemotron"
+                    "X-Title": "Agentic RAG"
                 }
             )
         except Exception as exc:
-            config.logger.warning(f"Failed to initialize OpenRouter Nemotron: {exc}")
+            config.logger.warning(f"Failed to initialize OpenRouter: {exc}")
 
     config.logger.info("No cloud API keys set for main LLM; using Ollama directly.")
     return None
