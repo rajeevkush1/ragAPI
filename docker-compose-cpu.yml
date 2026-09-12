@@ -34,6 +34,12 @@ services:
       - ./pdfs:/app/pdfs
       - ./parsed:/app/parsed
       - ./index.html:/app/index.html
+      - ./agentic_graph.py:/app/agentic_graph.py
+      - ./agentic_api.py:/app/agentic_api.py
+      - ./agentic_state.py:/app/agentic_state.py
+      - ./agentic_tools.py:/app/agentic_tools.py
+      - ./config.py:/app/config.py
+      - ./ingest.py:/app/ingest.py
     environment:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
