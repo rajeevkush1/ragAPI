@@ -119,18 +119,15 @@ MAX_HISTORY_TURNS   = int(os.getenv("MAX_HISTORY_TURNS", "20"))
 MAX_PDF_MB          = int(os.getenv("MAX_PDF_MB", "50"))
 
 # ── Dynamic Model Resolution (Cloud vs Local) ──────────────────────────────────
-_AVAILABLE_MODELS: set[str] = set()
-try:
-    import ollama
-    # Connect to local Ollama instance and fetch available models
-    client = ollama.Client(host=OLLAMA_BASE_URL)
-    _AVAILABLE_MODELS = {m["model"] for m in client.list().get("models", [])}
-except Exception:
-    pass
-
 def resolve_model(preferred_models: list[str], fallback_model: str) -> str:
     """Returns the first preferred cloud model available, otherwise the fallback model."""
-    for pm in preferred_models:
-        if pm in _AVAILABLE_MODELS:
-            return pm
+    try:
+        import ollama
+        client = ollama.Client(host=OLLAMA_BASE_URL, timeout=1.0)
+        available = {m["model"] for m in client.list().get("models", [])}
+        for pm in preferred_models:
+            if pm in available:
+                return pm
+    except Exception:
+        pass
     return fallback_model
