@@ -102,7 +102,7 @@ def get_embed_model(model_name: str | None = None) -> TextEmbedding:
         if _EMBED_MODEL is not None:
             unload_embed_model()
         console.log(f"[cyan]Loading embedding model[/cyan] [bold]{target_model}[/bold]…")
-        _EMBED_MODEL = TextEmbedding(model_name=target_model)
+        _EMBED_MODEL = TextEmbedding(model_name=target_model, threads=1)
         _CURRENT_MODEL_NAME = target_model
     return _EMBED_MODEL
 
@@ -377,9 +377,6 @@ def ingest_pdf(
     chunks = embed_chunks(chunks, model_name=embedding_model)
     elapsed = time.perf_counter() - t0
     console.log(f"[green]✓ Embedded[/green] in {elapsed:.1f}s")
-    
-    # Free embedding model memory immediately
-    unload_embed_model()
 
     # 4. Upsert
     try:
